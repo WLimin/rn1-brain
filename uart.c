@@ -5,7 +5,7 @@
 	Maintainer: Antti Alhonen <antti.alhonen@iki.fi>
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -40,7 +40,7 @@
 		Header:  0xaa
 		Length:  8
 		Payload: 0xff,0xff,0xff,0xff,  0xff,0xff,0x12,0xab
-	
+
 
 */
 
@@ -62,21 +62,20 @@ uint8_t txbuf[TX_BUFFER_LEN];
 
 extern int dbg[10];
 
-void uart_print_string_blocking(const char *buf)
-{
-	while(buf[0] != 0)
-	{
-		while((USART3->SR & (1UL<<7)) == 0) ;
+void uart_print_string_blocking(const char *buf) {
+	while (buf[0] != 0) {
+		while ((USART3->SR & (1UL << 7)) == 0) {
+			;
+		}
 		USART3->DR = buf[0];
 		buf++;
 	}
 }
 
-void uart_send_blocking(const uint8_t *buf, int len)
-{
-	while(len--)
-	{
-		while((USART3->SR & (1UL<<7)) == 0) ;
+void uart_send_blocking(const uint8_t *buf, int len) {
+	while (len--) {
+		while ((USART3->SR & (1UL << 7)) == 0)
+			;
 		USART3->DR = buf[0];
 		buf++;
 	}
@@ -100,37 +99,46 @@ volatile uint8_t* process_rx_buf;
 volatile int do_handle_message;
 
 extern void delay_ms(uint32_t i);
-static void handle_maintenance_msg()
-{
-	switch(process_rx_buf[4])
-	{
-		case 0x52:
-		host_dead();
-		LEFT_BLINKER_ON();
-		RIGHT_BLINKER_ON();
-		FWD_LIGHT_OFF();
-		run_flasher();
+static void handle_maintenance_msg(void) { //MSG_MAINTENANCE
+	switch (process_rx_buf[4]) {
+		case 0x52:  //Run flasher
+			//Flasher reconfigs the UART to 115200 8N1. Framing with MSB-denoted delimiters is not being followed anymore.
+			//Separate flasher protocol is specified elsewhere.
+			//Flasher cannot exit; it always ends up in reset.
+			host_dead();
+			LEFT_BLINKER_ON();
+			RIGHT_BLINKER_ON();
+			FWD_LIGHT_OFF();
+			run_flasher();
 		break;
 
-		case 0x53:
-		host_dead();
-		mc_flasher(process_rx_buf[5]);
+		case 0x53: //Run motor controller flasher
+			//Motor controller flasher reconfigs the UART to 115200 8N1. Framing with MSB-denoted delimiters is not being followed anymore.
+			//Separate flasher protocol is specified elsewhere.
+			//Flasher cannot exit; it always ends up in reset.
+			host_dead();
+			mc_flasher(process_rx_buf[5]); //motor controller number (1 to 4)
 		break;
 
 		case 0x54:
-		host_dead();
-		DO_KILL_PWR();
-		delay_ms(100);
-		
+			host_dead();
+			DO_KILL_PWR();
+			delay_ms(100);
+
+			//no break
 		case 0x55:
-		host_dead();
-		NVIC_SystemReset();
-		while(1);
+			host_dead();
+			NVIC_SystemReset();
+			while (1) {
+				;
+			}
+		break;
 
 //		case 0x60:
 //		run_profiler();
 
-		default: break;
+		default:
+		break;
 	}
 }
 
@@ -138,146 +146,139 @@ volatile int do_compass_round = 1;
 extern int accurate_turngo;
 
 int ignore_cmds = 0;
-
-void handle_uart_message()
-{
+// processing host's command.
+void handle_uart_message(void) {
 	extern volatile int send_settings;
-   dbg_teleportation_bug(401);
+	dbg_teleportation_bug(401);
 
-	if(!do_handle_message)
-		return;
-
-	if((ignore_cmds || bat_emerg_on) && process_rx_buf[0] != 0xfe)
-	{
+	if (!do_handle_message) {
 		return;
 	}
 
-   dbg_teleportation_bug(402);
+	if ((ignore_cmds || bat_emerg_on) && process_rx_buf[0] != 0xfe) {
+		return;
+	}
 
-	switch(process_rx_buf[0])
-	{
-		case 0xfe:
-		if(process_rx_buf[1] == 0x42 && process_rx_buf[2] == 0x11 && process_rx_buf[3] == 0x7a)
-		{
-			handle_maintenance_msg();
-		}
+	dbg_teleportation_bug(402);
+
+	switch (process_rx_buf[0]) {
+		case 0xfe: //MSG_MAINTENANCE
+			//3 x uint7:	0x42, 0x11 and 0x7A magic key numbers
+			if (process_rx_buf[1] == 0x42 && process_rx_buf[2] == 0x11 && process_rx_buf[3] == 0x7a) {
+				handle_maintenance_msg();
+			}
 		break;
 
-		case 0x80:
-		host_alive();
-		move_arc_manual(((int16_t)(int8_t)(process_rx_buf[1]<<1)), ((int16_t)(int8_t)(process_rx_buf[2]<<1)));
+		case 0x80: //MSG_MOVE_MANUAL, comm, ang
+			host_alive();
+			move_arc_manual(((int16_t) (int8_t) (process_rx_buf[1] << 1)),
+					((int16_t) (int8_t) (process_rx_buf[2] << 1)));
 		break;
 
-		case 0x81:
-		host_alive();
-		dis_coll_avoid();
-		accurate_turngo = process_rx_buf[6];
-		move_rel_twostep(((int32_t)I7I7_I16_lossy(process_rx_buf[1],process_rx_buf[2]))<<16, I7I7_I16_lossy(process_rx_buf[3],process_rx_buf[4]), process_rx_buf[5]);
+		case 0x81: //MSG_MOVE_RELATIVE_TWOSTEP Robot turns first, then goes straight.
+			host_alive();
+			dis_coll_avoid();
+			accurate_turngo = process_rx_buf[6];
+			move_rel_twostep(((int32_t) I7I7_I16_lossy(process_rx_buf[1], process_rx_buf[2])) << 16,
+					I7I7_I16_lossy(process_rx_buf[3], process_rx_buf[4]), process_rx_buf[5]);
 		break;
 
-		case 0x82:
-		host_alive();
-		ena_coll_avoid();
-		accurate_turngo = process_rx_buf[14];
-		move_xy_abs(I7x5_I32(process_rx_buf[1],process_rx_buf[2],process_rx_buf[3],process_rx_buf[4],process_rx_buf[5]),
-		            I7x5_I32(process_rx_buf[6],process_rx_buf[7],process_rx_buf[8],process_rx_buf[9],process_rx_buf[10]),
-		            process_rx_buf[11], process_rx_buf[12], process_rx_buf[13]);
+		case 0x82: //MSG_MOVE_RELATIVE_ARC Robot makes an arc by simultaneous turning and forward/backward motion.
+			host_alive();
+			ena_coll_avoid();
+			accurate_turngo = process_rx_buf[14];
+			move_xy_abs(I7x5_I32(process_rx_buf[1], process_rx_buf[2], process_rx_buf[3], process_rx_buf[4], process_rx_buf[5]),
+					I7x5_I32(process_rx_buf[6], process_rx_buf[7], process_rx_buf[8], process_rx_buf[9],
+							process_rx_buf[10]), process_rx_buf[11], process_rx_buf[12], process_rx_buf[13]);
 		break;
 
 		case 0x83:
-		host_alive();
-		dis_coll_avoid();
-		accurate_turngo = process_rx_buf[6];
-		move_absa_rels_twostep(((int32_t)I7I7_I16_lossy(process_rx_buf[1],process_rx_buf[2]))<<16, I7I7_I16_lossy(process_rx_buf[3],process_rx_buf[4]), process_rx_buf[5]);
+			host_alive();
+			dis_coll_avoid();
+			accurate_turngo = process_rx_buf[6];
+			move_absa_rels_twostep(((int32_t) I7I7_I16_lossy(process_rx_buf[1], process_rx_buf[2])) << 16,
+					I7I7_I16_lossy(process_rx_buf[3], process_rx_buf[4]), process_rx_buf[5]);
 		break;
 
-		case 0x84:
-		host_alive();
-		stop_movement();
+		case 0x84:		//STOP_MOVEMENTS
+			host_alive();
+			stop_movement();
 		break;
 
-		case 0x85:
-		limit_speed(process_rx_buf[1]);
+		case 0x85:		//SPEED_LIMIT
+			limit_speed(process_rx_buf[1]);
 		break;
 
-		case 0x86:
-		if(process_rx_buf[1] == 5)
-			daiju_mode_on();
-		else
-			daiju_mode_off();
-
+		case 0x86:		//TRIGE_DAIJU_MODE
+			if (process_rx_buf[1] == 5) {
+				daiju_mode_on();
+			} else {
+				daiju_mode_off();
+			}
 		break;
 
-		case 0x87:
-		find_charger();
-
+		case 0x87:		//GO_CHARGER
+			find_charger();
 		break;
 
-
-		case 0x88:
-		set_obstacle_avoidance_margin(process_rx_buf[1]);
-
+		case 0x88:		//SET_OBSTACLE_AVOIDANCE_MARGIN
+			set_obstacle_avoidance_margin(process_rx_buf[1]);
 		break;
 
-		case 0x89:
-		{
+		case 0x89: { //CORRECT_LOCATION_WITHOUT_MOVING_EXTERNAL
 			pos_t corr;
-			corr.ang = ((uint32_t)(I7I7_I16_lossy(process_rx_buf[1],process_rx_buf[2])))<<16;
-			corr.x = I7I7_I16_lossy(process_rx_buf[3],process_rx_buf[4])>>2;
-			corr.y = I7I7_I16_lossy(process_rx_buf[5],process_rx_buf[6])>>2;
+			corr.ang = ((uint32_t) (I7I7_I16_lossy(process_rx_buf[1], process_rx_buf[2]))) << 16;
+			corr.x = I7I7_I16_lossy(process_rx_buf[3],process_rx_buf[4]) >> 2;
+			corr.y = I7I7_I16_lossy(process_rx_buf[5],process_rx_buf[6]) >> 2;
 			correct_location_without_moving_external(corr);
 			set_lidar_id(process_rx_buf[7]);
 		}
 		break;
 
-		case 0x8a:
-		{
+		case 0x8a: { //SET_LOCATION_WITHOUT_MOVING_EXTERNAL
 			pos_t new_pos;
-			new_pos.ang = ((uint32_t)(I7I7_I16_lossy(process_rx_buf[1],process_rx_buf[2])))<<16;
-			new_pos.x = I7x5_I32(process_rx_buf[3],process_rx_buf[4],process_rx_buf[5],process_rx_buf[6],process_rx_buf[7]);
-			new_pos.y = I7x5_I32(process_rx_buf[8],process_rx_buf[9],process_rx_buf[10],process_rx_buf[11],process_rx_buf[12]);
+			new_pos.ang = ((uint32_t) (I7I7_I16_lossy(process_rx_buf[1], process_rx_buf[2]))) << 16;
+			new_pos.x = I7x5_I32(process_rx_buf[3], process_rx_buf[4], process_rx_buf[5], process_rx_buf[6], process_rx_buf[7]);
+			new_pos.y = I7x5_I32(process_rx_buf[8], process_rx_buf[9], process_rx_buf[10], process_rx_buf[11], process_rx_buf[12]);
 			set_location_without_moving_external(new_pos);
 			//reset_livelidar_images(-1);
 		}
-		break;
-
 
 		break;
 
-		case 0x8f:
-		if(process_rx_buf[1] == 42)
-			host_alive();
-		else
-			host_dead();
+		case 0x8f:	//TAGGLE_HOST_DEAD
+			if (process_rx_buf[1] == 'B') {
+				host_alive();
+			} else {
+				host_dead();
+			}
 		break;
 
-		case 0x91:
-		do_compass_round = 1;
+		case 0x91:	//DO_COMPASS_ROUND
+			do_compass_round = 1;
 		break;
 
-		case 0x92:
-		sync_to_compass();
+		case 0x92:	//SYNC_TO_COMPASS
+			sync_to_compass();
 		break;
 
-		// debug/dev messages
-		case 0xd1:
-		send_settings = 1;
+		case 0xd1:	// debug/dev messages
+			send_settings = 1;
 		break;
 
+		case 0xd2: {	//SET_MC_PID
+			extern volatile uint8_t mc_pid_imax;
+			extern volatile uint8_t mc_pid_feedfwd;
+			extern volatile uint8_t mc_pid_p;
+			extern volatile uint8_t mc_pid_i;
+			extern volatile uint8_t mc_pid_d;
 
-extern volatile uint8_t mc_pid_imax;
-extern volatile uint8_t mc_pid_feedfwd;
-extern volatile uint8_t mc_pid_p;
-extern volatile uint8_t mc_pid_i;
-extern volatile uint8_t mc_pid_d;
-
-
-		case 0xd2:
-		mc_pid_imax    = (process_rx_buf[1]<<1);
-		mc_pid_feedfwd = (process_rx_buf[2]<<1);
-		mc_pid_p       = (process_rx_buf[3]<<1);
-		mc_pid_i       = (process_rx_buf[4]<<1);
-		mc_pid_d       = (process_rx_buf[5]<<1);
+			mc_pid_imax = (process_rx_buf[1] << 1);
+			mc_pid_feedfwd = (process_rx_buf[2] << 1);
+			mc_pid_p = (process_rx_buf[3] << 1);
+			mc_pid_i = (process_rx_buf[4] << 1);
+			mc_pid_d = (process_rx_buf[5] << 1);
+		}
 		break;
 
 		case 0xd6:
@@ -288,39 +289,35 @@ extern volatile uint8_t mc_pid_d;
 	}
 	do_handle_message = 0;
 
-   dbg_teleportation_bug(403);
-
+	dbg_teleportation_bug(403);
 }
 
-void uart_rx_handler()
-{
+void uart_rx_handler(void) {
 	// This SR-then-DR read sequence clears error flags:
 	uint32_t flags = USART3->SR;
 	uint8_t byte = USART3->DR;
 
 // TODO:
-	if(flags & 0b1011)
-	{
+	if (flags & 0b1011) {
 		// At error, drop the packet.
 	}
 
-	if(byte == 255) // End-of-command delimiter
-	{
+	if (byte == 255) { // End-of-command delimiter
 		volatile uint8_t* tmp = gather_rx_buf;
 		gather_rx_buf = process_rx_buf;
 		process_rx_buf = tmp;
 		do_handle_message = 1;
 		rx_buf_loc = 0;
-	}
-	else
-	{
-		if(byte > 127) // Start of command delimiter
+	} else {
+		if (byte > 127) { // Start of command delimiter
 			rx_buf_loc = 0;
+		}
 
 		gather_rx_buf[rx_buf_loc] = byte;
 		rx_buf_loc++;
-		if(rx_buf_loc >= RX_BUFFER_LEN)  // TODO: this is kind of an error condition, handle it better.
+		if (rx_buf_loc >= RX_BUFFER_LEN) {  // TODO: this is kind of an error condition, handle it better.
 			rx_buf_loc = 0;
+		}
 	}
 }
 
@@ -335,45 +332,30 @@ volatile void* p_txbuf;
 #define CRC_POLYNOMIAL 0x07 // As per CRC-8-CCITT
 
 #define CALC_CRC(remainder) \
-	for(int crc__bit = 8; crc__bit > 0; --crc__bit) \
-	{ \
-		if((remainder) & 0b10000000) \
-		{ \
+	for(int crc__bit = 8; crc__bit > 0; --crc__bit) {\
+		if((remainder) & 0x80) {\
 			(remainder) = ((remainder) << 1) ^ CRC_POLYNOMIAL; \
-		} \
-		else \
-		{ \
+		} else { \
 			(remainder) = ((remainder) << 1); \
 		} \
 	}
 
-void uart_10k_fsm()
-{
-	if(uart_sending && (USART3->SR & (1UL<<7)) /*uart tx free*/)
-	{
-		if(uart_tx_loc == -3)
-		{
+void uart_10k_fsm(void) {
+	if (uart_sending && (USART3->SR & (1UL << 7)) /*uart tx free*/) {
+		if (uart_tx_loc == -3) {
 			USART3->DR = uart_tx_header;
 			uart_tx_loc++;
-		}
-		else if(uart_tx_loc == -2)
-		{
+		} else if (uart_tx_loc == -2) {
 			USART3->DR = uart_tx_len & 0xff;
 			uart_tx_loc++;
-		}
-		else if(uart_tx_loc == -1)
-		{
-			USART3->DR = (uart_tx_len & 0xff00)>>8;
+		} else if (uart_tx_loc == -1) {
+			USART3->DR = (uart_tx_len & 0xff00) >> 8;
 			uart_tx_loc++;
-		}
-		else if(uart_tx_loc == uart_tx_len)
-		{
+		} else if (uart_tx_loc == uart_tx_len) {
 			USART3->DR = uart_tx_checksum_accum;
 			uart_sending = 0;
-		}
-		else
-		{
-			uint8_t byte = ((char*)p_txbuf)[uart_tx_loc];
+		} else {
+			uint8_t byte = ((char*) p_txbuf)[uart_tx_loc];
 			USART3->DR = byte;
 			uart_tx_checksum_accum ^= byte;
 			CALC_CRC(uart_tx_checksum_accum);
@@ -382,10 +364,25 @@ void uart_10k_fsm()
 	}
 }
 
-int send_uart(void* buf, uint8_t header, int len)
-{
-	if(uart_sending)
+int send_uart(void* buf, uint8_t header, int len) {
+	if (uart_sending) {
 		return -1;
+	}
+	__disable_irq();
+	p_txbuf = buf;
+	uart_tx_header = header;
+	uart_tx_loc = -3;
+	uart_tx_len = len;
+	uart_tx_checksum_accum = CRC_INITIAL_REMAINDER;
+	uart_sending = 1;
+	__enable_irq();
+	return 0;
+}
+
+int send_uart_volatile(volatile void* buf, uint8_t header, int len) {
+	if (uart_sending) {
+		return -1;
+	}
 
 	__disable_irq();
 	p_txbuf = buf;
@@ -398,39 +395,25 @@ int send_uart(void* buf, uint8_t header, int len)
 	return 0;
 }
 
-int send_uart_volatile(volatile void* buf, uint8_t header, int len)
-{
-	if(uart_sending)
-		return -1;
-
-	__disable_irq();
-	p_txbuf = buf;
-	uart_tx_header = header;
-	uart_tx_loc = -3;
-	uart_tx_len = len;
-	uart_tx_checksum_accum = CRC_INITIAL_REMAINDER;
-	uart_sending = 1;
-	__enable_irq();
-	return 0;
-}
-
-int uart_busy()
-{
+int uart_busy(void) {
 	return uart_sending;
 }
 
 
 // These functions send data required often.
-void uart_send_critical2()
-{
-	if(uart_busy())
+void uart_send_critical2(void) {
+	if (uart_busy()) {
 		return;
+	}
 
 	txbuf[0] = 1;
 	txbuf[1] = get_xy_id();
 	int tm = get_xy_left();
-	if(tm < 0) tm*=-1;
-	else if(tm > 30000) tm = 30000;
+	if (tm < 0) {
+		tm *= -1;
+	} else if (tm > 30000) {
+		tm = 30000;
+	}
 	txbuf[2] = I16_MS(tm);
 	txbuf[3] = I16_LS(tm);
 
@@ -463,27 +446,30 @@ void uart_send_critical2()
 	send_uart(txbuf, 0xa5, 19);
 }
 
-void uart_send_critical1()
-{
-	if(uart_busy())
+void uart_send_critical1(void) {
+	if (uart_busy()) {
 		return;
-
+	}
 	txbuf[0] = 1;
 	__disable_irq();
 	int ang = cur_pos.ang;
 	int x = cur_pos.x;
 	int y = cur_pos.y;
 	__enable_irq();
-	ang>>=16;
+	ang >>= 16;
 	txbuf[1] = I16_MS(ang);
 	txbuf[2] = I16_LS(ang);
-	if(x < -1000000 || x > 1000000) x = 123456789;
+	if (x < -1000000 || x > 1000000) {
+		x = 123456789;
+	}
 	txbuf[3] = I32_I7_4(x);
 	txbuf[4] = I32_I7_3(x);
 	txbuf[5] = I32_I7_2(x);
 	txbuf[6] = I32_I7_1(x);
 	txbuf[7] = I32_I7_0(x);
-	if(y < -1000000 || y > 1000000) y = 123456789;
+	if (y < -1000000 || y > 1000000) {
+		y = 123456789;
+	}
 	txbuf[8] = I32_I7_4(y);
 	txbuf[9] = I32_I7_3(y);
 	txbuf[10] = I32_I7_2(y);
@@ -501,30 +487,27 @@ void uart_send_critical1()
 	TX itself is interrupt-driven.
 */
 
-void uart_send_fsm()
-{
+void uart_send_fsm(void) {
 	static int send_count = 0;
 
-	if(uart_busy())
+	if (uart_busy()) {
 		return;
-
+	}
 	send_count++;
 
-	switch(send_count)
-	{
-		case 1:
-		{
+	switch (send_count) {
+		case 1: {
 			int bat_v = get_bat_v();
 			int bat_percentage = get_bat_percentage();
-			int cha_v = 
-				#ifdef PCB1B
+			int cha_v =
+#ifdef PCB1B
 					get_cha_v();
-				#endif
-				#ifdef PCB1A
-					0;
-				#endif
+#endif
+#ifdef PCB1A
+			0;
+#endif
 
-			txbuf[0] = ((CHA_RUNNING())?1:0) | ((CHA_FINISHED())?2:0);
+			txbuf[0] = ((CHA_RUNNING()) ? 1 : 0) | ((CHA_FINISHED()) ? 2 : 0);
 			txbuf[1] = I16_MS(bat_v);
 			txbuf[2] = I16_LS(bat_v);
 			txbuf[3] = bat_percentage;
@@ -534,27 +517,24 @@ void uart_send_fsm()
 		}
 		break;
 
-		case 2:
-		{
-			for(int i=0; i<10; i++)
-			{
+		case 2: {
+			for (int i = 0; i < 10; i++) {
 				int tm = dbg[i];
-				txbuf[5*i+0] = I32_I7_4(tm);
-				txbuf[5*i+1] = I32_I7_3(tm);
-				txbuf[5*i+2] = I32_I7_2(tm);
-				txbuf[5*i+3] = I32_I7_1(tm);
-				txbuf[5*i+4] = I32_I7_0(tm);
+				txbuf[5 * i + 0] = I32_I7_4(tm);
+				txbuf[5 * i + 1] = I32_I7_3(tm);
+				txbuf[5 * i + 2] = I32_I7_2(tm);
+				txbuf[5 * i + 3] = I32_I7_1(tm);
+				txbuf[5 * i + 4] = I32_I7_0(tm);
 			}
 			send_uart(txbuf, 0xd2, 50);
 		}
 		break;
 
-		case 3:
-		{
+		case 3: {
 			extern int cur_compass_angle;
 			extern volatile int compass_round_on;
 			txbuf[0] = compass_round_on;
-			int tm = cur_compass_angle>>16;
+			int tm = cur_compass_angle >> 16;
 			txbuf[1] = I16_MS(tm);
 			txbuf[2] = I16_LS(tm);
 			send_uart(txbuf, 0xa3, 3);
@@ -562,14 +542,12 @@ void uart_send_fsm()
 		break;
 
 		default:
-		send_count = 0;
+			send_count = 0;
 		break;
 	}
-
 }
 
-void init_uart()
-{
+void init_uart(void) {
 	gather_rx_buf = rx_buffers[0];
 	process_rx_buf = rx_buffers[1];
 }

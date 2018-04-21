@@ -4,7 +4,7 @@
 	(c) 2017-2018 Pulu Robotics and other contributors
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -50,6 +50,9 @@
 #if !defined(LSM303C) && !defined(LSM303A)
 #error LSM303C or LSM303A must be defined
 #endif
+#ifdef   __cplusplus
+extern "C" {
+#endif
 
 typedef struct
 {
@@ -76,14 +79,14 @@ typedef struct
 	int16_t z;
 } compass_data_t;
 
-int init_gyro_xcel_compass();
+int init_gyro_xcel_compass(void);
 
-#define GYRO_NEW_DATA (1)
-#define XCEL_NEW_DATA (2)
-#define COMPASS_NEW_DATA (4)
-#define EXTRAGYRO_NEW_DATA (8)
+#define GYRO_NEW_DATA 		((uint32_t)1)
+#define XCEL_NEW_DATA 		((uint32_t)2)
+#define COMPASS_NEW_DATA 	((uint32_t)4)
+#define EXTRAGYRO_NEW_DATA 	((uint32_t)8)
 
-int gyro_xcel_compass_fsm();
+uint32_t gyro_xcel_compass_fsm(void);
 
 extern volatile gyro_data_t gyro_data[2];
 extern volatile xcel_data_t xcel_data[2];
@@ -100,5 +103,8 @@ extern volatile int gyro_timestep_plusses;
 extern volatile int gyro_timestep_minuses;
 extern volatile int xcel_timestep_plusses;
 extern volatile int xcel_timestep_minuses;
+#ifdef   __cplusplus
+}
+#endif
 
 #endif

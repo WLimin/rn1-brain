@@ -5,7 +5,7 @@
 	Maintainer: Antti Alhonen <antti.alhonen@iki.fi>
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -38,16 +38,19 @@
 
 #ifdef PCB1B
 
-#define MC2_CS1()  {GPIOC->BSRR = 1UL<<5;}
-#define MC2_CS0() {GPIOC->BSRR = 1UL<<(5+16);}
-#define MC1_CS1()  {GPIOC->BSRR = 1UL<<4;}
-#define MC1_CS0() {GPIOC->BSRR = 1UL<<(4+16);}
+#define MC2_CS1()  {GPIOC->BSRR = 1UL << 5;}
+#define MC2_CS0()  {GPIOC->BSRR = 1UL << (5 + 16);}
+#define MC1_CS1()  {GPIOC->BSRR = 1UL << 4;}
+#define MC1_CS0()  {GPIOC->BSRR = 1UL << (4 + 16);}
 
 #define NUM_MOTCONS 2
 
 
 #endif
 
+#ifdef   __cplusplus
+extern "C" {
+#endif
 
 
 #define MOTCON_DATAGRAM_LEN 8
@@ -82,5 +85,8 @@ extern volatile motcon_tx_t motcon_tx[4];
 
 void init_motcons();
 void motcon_fsm();
+#ifdef   __cplusplus
+}
+#endif
 
 #endif

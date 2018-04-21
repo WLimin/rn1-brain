@@ -5,7 +5,7 @@
 	Maintainer: Antti Alhonen <antti.alhonen@iki.fi>
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -15,7 +15,7 @@
 
 	GNU General Public License version 2 is supplied in file LICENSING.
 
-	
+
 	Module for interfacing with LIDAR, incl. coordinate conversion to absolute.
 
 */
@@ -23,7 +23,7 @@
 /*
 A bit of development history:
 
-First we used a Neato XV11 lidar; it seemed a good idea at the time to do some prototyping on. 
+First we used a Neato XV11 lidar; it seemed a good idea at the time to do some prototyping on.
 We also considered using it on early production models (small batches).
 
 A few things happened:
@@ -66,7 +66,7 @@ rate	mode	samp.f	samp.f	min	max
 4Hz	02	750Hz	800Hz	187	200
 4Hz	03	1000Hz	1075Hz	250	269
 
-We probably don't want to ever run at over 4Hz, since the angular resolution would be compromised too much. (Maybe we'll do it 
+We probably don't want to ever run at over 4Hz, since the angular resolution would be compromised too much. (Maybe we'll do it
 one day as a separate mode, when the environment is well mapped, with lots of easy visual clues, proven IMU reliability, so that
 the localization dependence on good laser data is not crucial. Then we can run at higher speeds and avoid obstacles.)
 
@@ -108,7 +108,7 @@ angle cannot be found at a certain index. After a (too) long consideration, I fo
 
 volatile int lidar_dbg1, lidar_dbg2;
 
-void rx_dma_off()
+void rx_dma_off(void)
 {
 	USART1->CR3 &= ~(1UL<<6);
 	DMA2_Stream2->CR = 0;
@@ -120,7 +120,7 @@ void rx_dma_off()
 	DMA2->LIFCR = 0b111101UL<<16;
 }
 
-void tx_dma_off()
+void tx_dma_off(void)
 {
 	USART1->CR3 &= ~(1UL<<7);
 	DMA2_Stream7->CR = 0;
@@ -135,7 +135,7 @@ extern int dbg[10];
 extern void delay_us(uint32_t i);
 extern void delay_ms(uint32_t i);
 
-void lidar_mark_invalid()
+void lidar_mark_invalid(void)
 {
 }
 
@@ -177,9 +177,9 @@ lidar_scan_t *acq_lidar_scan;
 lidar_scan_t *prev_lidar_scan;
 
 
-void lidar_start_acq();
+void lidar_start_acq(void);
 void lidar_send_cmd(int tx_len, int rx_len);
-void lidar_rx_done_inthandler();
+void lidar_rx_done_inthandler(void);
 
 int lidar_fps = 2;
 int lidar_smp = 2;
@@ -214,7 +214,7 @@ void lidar_on(int fps, int smp)
 		cur_lidar_state = S_LIDAR_WAITPOWERED; // This wait also makes sure the RX DMA is finished (or at least there's nothing we can do, anyway)
 }
 
-void lidar_off()
+void lidar_off(void)
 {
 	rx_dma_off();
 	tx_dma_off();
@@ -252,7 +252,7 @@ const ignore_area_t ignore_areas[N_IGNORE_AREAS] =
 
 int wait_ready_poll_cnt;
 
-void lidar_fsm()
+void lidar_fsm(void)
 {
 	static int powerwait_cnt;
 	static int reconfwait_cnt;
@@ -373,14 +373,14 @@ void lidar_fsm()
 
 int lidar_cur_n_samples;
 
-volatile int lidar_near_filter_on = 1;
-volatile int lidar_midlier_filter_on = 1;
+volatile bool lidar_near_filter_on = true;
+volatile bool lidar_midlier_filter_on = true;
 
-volatile int lidar_scan_ready;
+volatile bool lidar_scan_ready;
 
 // Undocumented bug in Scanse Sweep: while the motor is stabilizing / calibrating, it also ignores the "Adjust LiDAR Sample rate" command (completely, no reply).
 
-void lidar_rx_done_inthandler()
+void lidar_rx_done_inthandler(void)
 {
 	int starttime = TIM6->CNT;
 
@@ -394,7 +394,7 @@ void lidar_rx_done_inthandler()
 	{
 		case S_LIDAR_PRECONF_WAIT_READY:
 		{
-			if(lidar_rxbuf[0][0] == 'M' && 
+			if(lidar_rxbuf[0][0] == 'M' &&
 			   lidar_rxbuf[0][1] == 'Z' &&
 			   lidar_rxbuf[0][2] == '0' &&
 			   lidar_rxbuf[0][3] == '0')
@@ -406,9 +406,7 @@ void lidar_rx_done_inthandler()
 				lidar_txbuf[2] = 10;
 				lidar_send_cmd(3, 5);
 				cur_lidar_state = S_LIDAR_PRECONF_CHECK_SPEED;
-			}
-			else
-			{
+			} else {
 			//	lidar_dbg1++;
 				// Motor not stabilized yet. Poll again after a 100 ms pause (in lidar_fsm())
 				wait_ready_poll_cnt = 100;
@@ -416,13 +414,11 @@ void lidar_rx_done_inthandler()
 		}
 		break;
 
-		case S_LIDAR_PRECONF_CHECK_SPEED:
-		{
-			if(lidar_rxbuf[0][0] == 'M' && 
+		case S_LIDAR_PRECONF_CHECK_SPEED: {
+			if(lidar_rxbuf[0][0] == 'M' &&
 			   lidar_rxbuf[0][1] == 'I' &&
 			   lidar_rxbuf[0][2] == '0' &&
-			   lidar_rxbuf[0][3] == '0'+lidar_fps)
-			{
+			   lidar_rxbuf[0][3] == '0' + lidar_fps) {
 				// The speed is configured correctly already - don't conf it again, it would cause a recalibration wait.
 				// Send "Adjust LiDAR Sample Rate" command.
 				lidar_txbuf[0] = 'L';
@@ -432,9 +428,7 @@ void lidar_rx_done_inthandler()
 				lidar_txbuf[4] = 10;
 				cur_lidar_state = S_LIDAR_CONF_SAMPLING;
 				lidar_send_cmd(5, 9);
-			}
-			else
-			{
+			} else {
 				// Speed is not configured correctly yet. Conf it now.
 				lidar_txbuf[0] = 'M';
 				lidar_txbuf[1] = 'S';
@@ -448,37 +442,31 @@ void lidar_rx_done_inthandler()
 		break;
 
 
-		case S_LIDAR_CONF_SPEED:
-		{
-			if(lidar_rxbuf[0][0] == 'M' && 
-			   lidar_rxbuf[0][1] == 'S' &&
-			   lidar_rxbuf[0][2] == '0' &&
-			   lidar_rxbuf[0][3] == '0'+lidar_fps &&
-			   lidar_rxbuf[0][4] == 10 &&
-			   lidar_rxbuf[0][5] == '0' &&
-			   lidar_rxbuf[0][6] == '0' &&
-			   lidar_rxbuf[0][7] == 'P' &&
-			   lidar_rxbuf[0][8] == 10)
-			{
+		case S_LIDAR_CONF_SPEED: {
+			if (lidar_rxbuf[0][0] == 'M'
+					&& lidar_rxbuf[0][1] == 'S'
+					&& lidar_rxbuf[0][2] == '0'
+					&& lidar_rxbuf[0][3] == '0' + lidar_fps
+					&& lidar_rxbuf[0][4] == 10
+					&& lidar_rxbuf[0][5] == '0'
+					&& lidar_rxbuf[0][6] == '0'
+					&& lidar_rxbuf[0][7] == 'P'
+					&& lidar_rxbuf[0][8] == 10) {
 				// Change speed command succesful - start waiting for it to stabilize...
 				cur_lidar_state = S_LIDAR_WAIT_READY;
 				wait_ready_poll_cnt = 1000; // first poll after 1sec.
-			}
-			else
-			{
+			} else {
 				lidar_error_code = LIDAR_ERR_UNEXPECTED_REPLY_MOTORSPEED;
 				cur_lidar_state = S_LIDAR_ERROR;
 			}
 		}
 		break;
 
-		case S_LIDAR_WAIT_READY:
-		{
-			if(lidar_rxbuf[0][0] == 'M' && 
+		case S_LIDAR_WAIT_READY: {
+			if(lidar_rxbuf[0][0] == 'M' &&
 			   lidar_rxbuf[0][1] == 'Z' &&
 			   lidar_rxbuf[0][2] == '0' &&
-			   lidar_rxbuf[0][3] == '0')
-			{
+			   lidar_rxbuf[0][3] == '0') {
 				// Motor speed is stabilized.
 				// Send "Adjust LiDAR Sample Rate" command.
 				lidar_txbuf[0] = 'L';
@@ -488,9 +476,7 @@ void lidar_rx_done_inthandler()
 				lidar_txbuf[4] = 10;
 				cur_lidar_state = S_LIDAR_CONF_SAMPLING;
 				lidar_send_cmd(5, 9);
-			}
-			else
-			{
+			} else {
 				// Motor not stabilized yet. Poll again after 100 ms pause (in lidar_fsm())
 //				lidar_dbg1++;
 				wait_ready_poll_cnt = 100;
@@ -498,9 +484,8 @@ void lidar_rx_done_inthandler()
 		}
 		break;
 
-		case S_LIDAR_CONF_SAMPLING:
-		{
-			if(lidar_rxbuf[0][0] == 'L' && 
+		case S_LIDAR_CONF_SAMPLING: {
+			if(lidar_rxbuf[0][0] == 'L' &&
 			   lidar_rxbuf[0][1] == 'R' &&
 			   lidar_rxbuf[0][2] == '0' &&
 			   lidar_rxbuf[0][3] == '0'+lidar_smp &&
@@ -508,8 +493,7 @@ void lidar_rx_done_inthandler()
 			   lidar_rxbuf[0][5] == '0' &&
 			   lidar_rxbuf[0][6] == '0' &&
 			   lidar_rxbuf[0][7] == 'P' &&
-			   lidar_rxbuf[0][8] == 10)
-			{
+			   lidar_rxbuf[0][8] == 10) {
 				// Sample rate successfully set.
 				// Send "Start data acquisition" command and start waiting for actual scan data.
 				lidar_txbuf[0] = 'D';
@@ -517,18 +501,15 @@ void lidar_rx_done_inthandler()
 				lidar_txbuf[2] = 10;
 				cur_lidar_state = S_LIDAR_WAIT_START_ACK;
 				lidar_send_cmd(3, 6);
-			}
-			else
-			{
+			} else {
 				lidar_error_code = LIDAR_ERR_UNEXPECTED_REPLY_SAMPLERATE;
 				cur_lidar_state = S_LIDAR_ERROR;
 			}
 		}
 		break;
 
-		case S_LIDAR_WAIT_START_ACK:
-		{
-			if(lidar_rxbuf[0][0] == 'D' && 
+		case S_LIDAR_WAIT_START_ACK: {
+			if(lidar_rxbuf[0][0] == 'D' &&
 			   lidar_rxbuf[0][1] == 'S' &&
 			   lidar_rxbuf[0][2] == '0' &&
 			   lidar_rxbuf[0][3] == '0' &&
@@ -539,9 +520,7 @@ void lidar_rx_done_inthandler()
 				lidar_start_acq();
 				cur_lidar_state = S_LIDAR_RUNNING;
 				chk_err_cnt = 0;
-			}
-			else
-			{
+			} else {
 				// This shouldn't happen, as we have polled to confirm that the motor is ready.
 				lidar_error_code = LIDAR_ERR_DATASTART_ACK;
 				cur_lidar_state = S_LIDAR_ERROR;
@@ -549,8 +528,7 @@ void lidar_rx_done_inthandler()
 		}
 		break;
 
-		case S_LIDAR_RUNNING:
-		{
+		case S_LIDAR_RUNNING: {
 
    dbg_teleportation_bug(301);
 
@@ -558,12 +536,10 @@ void lidar_rx_done_inthandler()
 			// Actual data packet is 7 bytes of binary instead of ASCII.
 			int chk = (lidar_rxbuf[buf_idx][0]+lidar_rxbuf[buf_idx][1]+lidar_rxbuf[buf_idx][2]+
 				  lidar_rxbuf[buf_idx][3]+lidar_rxbuf[buf_idx][4]+lidar_rxbuf[buf_idx][5]) % 255;
-			if(chk != lidar_rxbuf[buf_idx][6] /*checksum fail*/ || (lidar_rxbuf[buf_idx][0]&0b11111110) /* any error bit*/)
-			{
+			if(chk != lidar_rxbuf[buf_idx][6] /*checksum fail*/ || (lidar_rxbuf[buf_idx][0]&0b11111110) /* any error bit*/) {
 				chk_err_cnt+=20;
 
-				if(chk_err_cnt > 100)
-				{
+				if (chk_err_cnt > 100) {
 					// In the long run, 1/20th of the data is allowed to fail the checksum / error flag tests.
 					// In the short run, 5 successive samples are allowed to fail.
 					cur_lidar_state = S_LIDAR_ERROR;
@@ -698,10 +674,8 @@ void lidar_rx_done_inthandler()
 
 			}
 
-			for(int i=0; i<N_IGNORE_AREAS; i++)
-			{
-				if(degper16 > ignore_areas[i].start && degper16 < ignore_areas[i].end)
-				{
+			for (int i = 0; i < N_IGNORE_AREAS; i++) {
+				if (degper16 > ignore_areas[i].start && degper16 < ignore_areas[i].end) {
 					goto IGNORE_SAMPLE;
 				}
 			}
@@ -716,44 +690,39 @@ void lidar_rx_done_inthandler()
 			int flt_len;
 			static int prev_len, prev2_len, prev3_len, skip_averaging;
 
-			if(lidar_near_filter_on && skip_averaging == 0)
-			{
-				if(len < 600 && (prev_len < 600 || prev2_len < 600 || prev3_len < 600))
-				{
+			if (lidar_near_filter_on && skip_averaging == 0) {
+				if (len < 600 && (prev_len < 600 || prev2_len < 600 || prev3_len < 600)) {
 					// Average the four:
 					flt_len = (len + prev_len + prev2_len + prev3_len)>>2;
 
 					// Overwrite the previous, 4->1
-					if(lidar_cur_n_samples > 2) lidar_cur_n_samples-=3;
+					if (lidar_cur_n_samples > 2)
+						lidar_cur_n_samples -= 3;
 					skip_averaging = 3;
-				}
-				else if(len < 800 && (prev_len < 800 || prev2_len < 800))
-				{
+				} else if (len < 800 && (prev_len < 800 || prev2_len < 800)) {
 					// Average the three:
 					flt_len = (len + prev_len + prev2_len)/3;
 
 					// Overwrite the previous, 3->1
-					if(lidar_cur_n_samples > 1) lidar_cur_n_samples-=2;
+					if (lidar_cur_n_samples > 1)
+						lidar_cur_n_samples -= 2;
 					skip_averaging = 2;
-				}
-				else if(len < 1100)
-				{
+				} else if (len < 1100) {
 					// Average the two.
 					flt_len = (len+prev_len)>>1;
 					// 2->1
-					if(lidar_cur_n_samples) lidar_cur_n_samples--;
+					if (lidar_cur_n_samples)
+						lidar_cur_n_samples--;
 					skip_averaging = 1;
-				}
-				else
-				{
+				} else {
 					flt_len = len;
-					if(skip_averaging) skip_averaging--;
+					if (skip_averaging)
+						skip_averaging--;
 				}
-			}
-			else
-			{
+			} else {
 				flt_len = len;
-				if(skip_averaging) skip_averaging--;
+				if (skip_averaging)
+					skip_averaging--;
 			}
 
 			prev3_len = prev2_len;
@@ -777,7 +746,7 @@ void lidar_rx_done_inthandler()
 
 			acq_lidar_scan->scan[lidar_cur_n_samples].x = x;
 			acq_lidar_scan->scan[lidar_cur_n_samples].y = y;
-			
+
 			lidar_cur_n_samples++;
 
 
@@ -814,28 +783,25 @@ void lidar_rx_done_inthandler()
 	If configuring the tx or rx DMA channel fails (due to it still being in use, no other reasons now), sets the error state.
 
 */
-void lidar_send_cmd(int tx_len, int rx_len)
-{
-	if(rx_len && (DMA2_Stream2->CR & 1UL))
-	{
+void lidar_send_cmd(int tx_len, int rx_len) {
+	if (rx_len && (DMA2_Stream2->CR & 1UL)) {
 		cur_lidar_state = S_LIDAR_ERROR;
 		lidar_error_code = LIDAR_ERR_RX_DMA_BUSY;
 		return;
 	}
 
-	if(tx_len && (DMA2_Stream7->CR & 1UL))
-	{
+	if (tx_len && (DMA2_Stream7->CR & 1UL)) {
 		cur_lidar_state = S_LIDAR_ERROR;
 		lidar_error_code = LIDAR_ERR_TX_DMA_BUSY;
 		return;
 	}
 
-	if(rx_len)
-	{
+	if (rx_len) {
 		rx_dma_off();
 		// Configure for RX:
-		DMA2_Stream2->CR = 4UL<<25 /*Channel*/ | 0b01UL<<16 /*med prio*/ | 0b00UL<<13 /*8-bit mem*/ | 0b00UL<<11 /*8-bit periph*/ |
-			           1UL<<10 /*mem increment*/ | 0b00UL<<6 /*periph-to-memory*/ | 1UL<<4 /*transfer complete interrupt*/;
+		DMA2_Stream2->CR = 4UL << 25 /*Channel*/| 0b01UL << 16 /*med prio*/| 0b00UL << 13 /*8-bit mem*/| 0b00UL << 11 /*8-bit periph*/
+				| 1UL << 10 /*mem increment*/| 0b00UL << 6 /*periph-to-memory*/
+				| 1UL << 4 /*transfer complete interrupt*/;
 		DMA2_Stream2->NDTR = rx_len;
 
 		USART1->SR;
@@ -846,12 +812,11 @@ void lidar_send_cmd(int tx_len, int rx_len)
 		DMA2_Stream2->CR |= 1UL; // Enable RX DMA
 	}
 
-	if(tx_len)
-	{
+	if (tx_len) {
 		tx_dma_off();
 		// Configure for TX:
-		DMA2_Stream7->CR = 4UL<<25 /*Channel*/ | 0b00UL<<16 /*low prio*/ | 0b00UL<<13 /*8-bit mem*/ | 0b00UL<<11 /*8-bit periph*/ |
-			           1UL<<10 /*mem increment*/ | 0b01UL<<6 /*memory-to-periph*/;
+		DMA2_Stream7->CR = 4UL << 25 /*Channel*/| 0b00UL << 16 /*low prio*/| 0b00UL << 13 /*8-bit mem*/| 0b00UL << 11 /*8-bit periph*/
+				| 1UL << 10 /*mem increment*/| 0b01UL << 6 /*memory-to-periph*/;
 		DMA2_Stream7->NDTR = tx_len;
 
 		USART1->SR = 0;
@@ -866,11 +831,10 @@ void lidar_send_cmd(int tx_len, int rx_len)
 	Start receiving - configure the RX DMA for circular double buffering - we don't need to reconfigure DMA until we stop.
 	Each new full packet causes an interrupt.
 */
-void lidar_start_acq()
-{
-	DMA2_Stream2->CR = 4UL<<25 /*Channel*/ | 1UL<<18 /*Double Buf mode*/ | 0b01UL<<16 /*med prio*/ | 
-			   0b00UL<<13 /*8-bit mem*/ | 0b00UL<<11 /*8-bit periph*/ |
-	                   1UL<<10 /*mem increment*/ | 1UL<<8 /*circular*/ | 1UL<<4 /*transfer complete interrupt*/;  // Disable
+void lidar_start_acq(void) {
+	DMA2_Stream2->CR = 4UL << 25 /*Channel*/| 1UL << 18 /*Double Buf mode*/| 0b01UL << 16 /*med prio*/| 0b00UL << 13 /*8-bit mem*/
+			| 0b00UL << 11 /*8-bit periph*/| 1UL << 10 /*mem increment*/| 1UL << 8 /*circular*/
+			| 1UL << 4 /*transfer complete interrupt*/;  // Disable
 
 	DMA2_Stream2->NDTR = 7;
 
@@ -880,8 +844,7 @@ void lidar_start_acq()
 	DMA2_Stream2->CR |= 1UL; // Enable RX DMA
 }
 
-void init_lidar()
-{
+void init_lidar(void) {
 	acq_lidar_scan = &lidar_scans[0];
 	prev_lidar_scan = &lidar_scans[1];
 	// USART1 (lidar) = APB2 = 60 MHz

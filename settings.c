@@ -5,7 +5,7 @@
 	Maintainer: Antti Alhonen <antti.alhonen@iki.fi>
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -43,16 +43,13 @@ extern unsigned int _SETTINGSI_BEGIN;
 
 #define SETTINGS_FLASH_SECTOR 1
 
-int verify_settings()
-{
+int verify_settings(void) {
 	uint32_t* settings_begin  = (uint32_t*)&_SETTINGS_BEGIN;
 	uint32_t* settings_end    = (uint32_t*)&_SETTINGS_END;
 	uint32_t* settingsi_begin = (uint32_t*)&_SETTINGSI_BEGIN;
 
-	while(settings_begin < settings_end)
-	{
-		if(*settings_begin != *settingsi_begin)
-		{
+	while (settings_begin < settings_end) {
+		if (*settings_begin != *settingsi_begin) {
 			return -1;
 		}
 		settings_begin++;
@@ -61,8 +58,7 @@ int verify_settings()
 	return 0;
 }
 
-void program_setting_page()
-{
+void program_setting_page(void) {
 	unlock_flash();
 	flash_erase_sector(SETTINGS_FLASH_SECTOR);
 
@@ -77,13 +73,13 @@ void program_setting_page()
 	// the address by FLASH_OFFSET/4.
 	#define FLASH_OFFSET 0x08000000
 	settingsi_begin += FLASH_OFFSET/4;
-	while(settings_begin < settings_end)
-	{
+	while (settings_begin < settings_end) {
 		*settingsi_begin = *settings_begin;
 
 		settings_begin++;
 		settingsi_begin++;
-		while(FLASH->SR & (1UL<<16)) ; // Poll busy bit
+		while (FLASH->SR & (1UL << 16))
+			; // Poll busy bit
 	}
 
 	FLASH->CR = 0; // Clear programming bit.
@@ -91,16 +87,12 @@ void program_setting_page()
 	lock_flash();
 }
 
-void save_settings()
-{
+void save_settings(void) {
 	program_setting_page();
-	if(verify_settings())
-	{
+	if (verify_settings()) {
 		program_setting_page();
-		if(verify_settings())
-		{
+		if (verify_settings()) {
 			error(7);
 		}
 	}
-
 }

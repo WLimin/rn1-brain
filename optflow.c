@@ -36,7 +36,7 @@ extern void delay_us(uint32_t i);
 
 int optflow_ready;
 int optflow_dummy_data;
-void init_optflow()
+void init_optflow(void)
 {
 	OPTFLOW_RST_HI();
 	// SPI2 @ APB1 = 30 MHz

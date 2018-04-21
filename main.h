@@ -1,6 +1,18 @@
 #ifndef __MAIN_H
 #define __MAIN_H
 
+#ifndef bool
+typedef uint32_t bool;
+#endif
+
+#ifndef false
+#define false		0
+#endif
+
+#ifndef true
+#define true !false
+#endif
+
 #include "sonar.h"
 #include "optflow.h"
 
@@ -47,7 +59,8 @@
 	#define LIDAR_ENA() {GPIOB->BSRR = 1UL<<5;}
 	#define LIDAR_DIS() {GPIOB->BSRR = 1UL<<(5+16);}
 
-	#define DO_KILL_PWR() {GPIOE->BSRR = 1UL<<2;}
+//with emptyish battery: shutdown. With good battery: hard reset
+	#define DO_KILL_PWR() do{GPIOE->BSRR = 1UL<<2;}while(0)
 
 	#define LEFT_BLINKER_ON()  do{GPIOD->BSRR = 1UL<<10;}while(0)
 	#define LEFT_BLINKER_OFF() do{GPIOD->BSRR = 1UL<<(10+16);}while(0)
@@ -79,24 +92,24 @@
 
 
 #endif
+#ifdef   __cplusplus
+extern "C" {
+#endif
 
 void error(int code);
-void run_flasher();
+void run_flasher(void);
 void mc_flasher(int mcnum);
 void delay_ms(uint32_t i);
 void delay_us(uint32_t i);
-
 
 extern volatile int optflow_int_x, optflow_int_y;
 
 extern volatile optflow_data_t latest_optflow;
 extern volatile int optflow_errors;
 
-
-
-int get_bat_v();
-int get_bat_percentage();
-int get_cha_v(); // in mv
+int get_bat_v(void);
+int get_bat_percentage(void);
+int get_cha_v(void); // in mv
 
 
 #define ADC_SAMPLES 2
@@ -112,6 +125,9 @@ extern volatile int bat_emerg_on;
 extern volatile int bat_emerg_action;
 extern volatile int robot_is_in_charger;
 
+#ifdef   __cplusplus
+}
+#endif
 
 
 #endif

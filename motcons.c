@@ -5,7 +5,7 @@
 	Maintainer: Antti Alhonen <antti.alhonen@iki.fi>
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -23,6 +23,7 @@
 
 	You can even remote update the firmware of those slave MCU's, the code for that is kinda
 	kludgy right now, sorry about that.
+	你甚至能远程更新那些协处理器的固件，现在那些代码有点复杂，抱歉。
 
 */
 
@@ -39,20 +40,25 @@ volatile int cur_motcon;
 volatile int motcons_initialized;
 volatile int motcon_errors;
 
-void motcon_rx_done_inthandler()
-{
+void motcon_rx_done_inthandler() {
 	DMA2->LIFCR = 0b111101UL<<0;
-	switch(cur_motcon)
-	{
-		case 0: {MC1_CS1();} break;
-		case 1: {MC2_CS1();} break;
+	switch (cur_motcon) {
+		case 0: {
+			MC1_CS1();
+		}
+		break;
+		case 1: {
+			MC2_CS1();
+		}
+		break;
 		#if NUM_MOTCONS >= 3
 		case 2: {MC3_CS1();} break;
 		#endif
 		#if NUM_MOTCONS >= 4
 		case 3: {MC4_CS1();} break;
 		#endif
-		default: break;
+		default:
+		break;
 	}
 }
 
@@ -100,37 +106,52 @@ void init_motcons()
 	200kHz access to motcon_fsm is allowable! In practice, polling at
 	10 kHz (i.e., 2.5 kHz per motor) should give good response.
 */
-void motcon_fsm()
-{
-	if(!motcons_initialized || (DMA2_Stream0->CR & 1) || (DMA2_Stream3->CR & 1))
-	{
+//send and receive motor controller buffer by SPI with DMA.
+void motcon_fsm() {
+	if (!motcons_initialized || (DMA2_Stream0->CR & DMA_SxCR_EN) || (DMA2_Stream3->CR & DMA_SxCR_EN)) {
 		motcon_errors++;
 		return;
 	}
 
-	if(cur_motcon == NUM_MOTCONS-1)
+//切换电机
+	if (cur_motcon == NUM_MOTCONS - 1) {
 		cur_motcon = 0;
-	else
+	} else {
 		cur_motcon++;
-
-	switch(cur_motcon)
-	{
-		case 0: {MC1_CS0();} break;
-		case 1: {MC2_CS0();} break;
-		#if NUM_MOTCONS >= 4
-		case 2: {MC3_CS0();} break;
-		#endif
-		#if NUM_MOTCONS >= 4
-		case 3: {MC4_CS0();} break;
-		#endif
-		default: break;
 	}
 
-	DMA2_Stream0->M0AR = (uint32_t)&motcon_rx[cur_motcon];
-	DMA2_Stream3->M0AR = (uint32_t)&motcon_tx[cur_motcon];
+	switch (cur_motcon) {
+		case 0: {
+			MC1_CS0();
+		}
+		break;
+		case 1: {
+			MC2_CS0();
+		}
+		break;
+#if NUM_MOTCONS >= 4
+		case 2: {
+			MC3_CS0();
+		}
+		break;
+#endif
+#if NUM_MOTCONS >= 4
+		case 3: {
+			MC4_CS0();
+		}
+		break;
+#endif
+		default:
+		break;
+	}
 
-	DMA2->LIFCR = 0b111101UL<<0;  DMA2_Stream0->CR |= 1UL; // Enable RX DMA
-	DMA2->LIFCR = 0b111101UL<<22; DMA2_Stream3->CR |= 1UL; // Enable TX DMA
+	DMA2_Stream0->M0AR = (uint32_t) &motcon_rx[cur_motcon];
+	DMA2_Stream3->M0AR = (uint32_t) &motcon_tx[cur_motcon];
+
+	DMA2->LIFCR =	DMA_LIFCR_CTCIF0 | DMA_LIFCR_CHTIF0 | DMA_LIFCR_CTEIF0 | DMA_LIFCR_CDMEIF0 | DMA_LIFCR_CFEIF0; //0b111101UL << 0;
+	DMA2_Stream0->CR |= DMA_SxCR_EN; // Enable RX DMA
+	DMA2->LIFCR = 0b111101UL << 22;
+	DMA2_Stream3->CR |= DMA_SxCR_EN; // Enable TX DMA
 
 }
 
@@ -141,95 +162,125 @@ void motcon_fsm()
 
 int mc_flasher_num;
 
-void mc_flasher_cs1()
-{
-	switch(mc_flasher_num)
-	{
-		case 1: MC1_CS1(); break;
-		case 2: MC2_CS1(); break;
-		#if NUM_MOTCONS >= 3
-		case 3: MC3_CS1(); break;
-		#endif
-		#if NUM_MOTCONS >= 4
-		case 4: MC4_CS1(); break;
-		#endif
-		default: LED_ON(); while(1);
+void mc_flasher_cs1() {
+	switch (mc_flasher_num) {
+		case 1:
+			MC1_CS1();
+		break;
+		case 2:
+			MC2_CS1();
+		break;
+#if NUM_MOTCONS >= 3
+		case 3:
+			MC3_CS1();
+		break;
+#endif
+#if NUM_MOTCONS >= 4
+		case 4:
+			MC4_CS1();
+		break;
+#endif
+		default:
+			LED_ON();
+			while (1) {
+				;
+			}
 	}
 }
 
-void mc_flasher_cs0()
-{
-	switch(mc_flasher_num)
-	{
-		case 1: MC1_CS0(); break;
-		case 2: MC2_CS0(); break;
-		#if NUM_MOTCONS >= 3
-		case 3: MC3_CS0(); break;
-		#endif
-		#if NUM_MOTCONS >= 4
-		case 4: MC4_CS0(); break;
-		#endif
-		default: LED_ON(); while(1);
+void mc_flasher_cs0() {
+	switch (mc_flasher_num) {
+		case 1:
+			MC1_CS0();
+		break;
+		case 2:
+			MC2_CS0();
+		break;
+#if NUM_MOTCONS >= 3
+		case 3:
+			MC3_CS0();
+		break;
+#endif
+#if NUM_MOTCONS >= 4
+		case 4:
+			MC4_CS0();
+		break;
+#endif
+		default:
+			LED_ON();
+			while (1) {
+				;
+			}
 	}
 }
 
 // Blocks until free space in the SPI TX FIFO
-void spi1_poll_tx(uint16_t d)
-{
-	while(!(SPI1->SR & (1UL<<1))) ;
+void spi1_poll_tx(uint16_t d) {
+	while (!(SPI1->SR & SPI_SR_TXE)) {
+		;
+	}
 	SPI1->DR = d;
 }
 
 // Blocks until SPI TX FIFO empty and not busy.
 
-void spi1_poll_tx_bsy(uint16_t d)
-{
-	while(!(SPI1->SR & (1UL<<1))) ;
+void spi1_poll_tx_bsy(uint16_t d) {
+	while (!(SPI1->SR & SPI_SR_TXE)) {
+		;
+	}
 	SPI1->DR = d;
-	while(SPI1->SR&(0b11<<11)); // Wait for TX fifo empty
-	while(SPI1->SR&(1<<7)) ; // Wait until not busy.
+	while (SPI1->SR & (0b11 << 11)) {
+		; // Wait for TX fifo empty
+	}
+	while (SPI1->SR & SPI_SR_BSY) {
+		; // Wait until not busy.
+	}
 	delay_us(1);
 }
 
-void spi1_poll_bsy()
-{
-	while(SPI1->SR&(0b11<<11)); // Wait for TX fifo empty
-	while(SPI1->SR&(1<<7)) ; // Wait until not busy.
+void spi1_poll_bsy() {
+	while (SPI1->SR & (0b11 << 11)) {
+		; // Wait for TX fifo empty
+	}
+	while (SPI1->SR & SPI_SR_BSY) {
+		; // Wait until not busy.
+	}
 	delay_us(1);
 }
 
 // Blocks until data available in SPI RX FIFO - so indefinitely unless you have issued a TX just before.
-uint16_t spi1_poll_rx()
-{
-	while(!(SPI1->SR & (1UL<<0))) ;
+uint16_t spi1_poll_rx() {
+	while (!(SPI1->SR & SPI_SR_RXNE)) {
+		;
+	}
 	return SPI1->DR;
 }
 
 // Empties the rx fifo
-void spi1_empty_rx()
-{
-	while(SPI1->SR&(0b11<<9)) SPI1->DR;
+void spi1_empty_rx() {
+	while (SPI1->SR & (0b11 << 9)) {
+		SPI1->DR;
+	}
 }
 
-void usart3_poll_tx(uint8_t d) // blocks until current byte tx finished
-{
-	while(!(USART3->SR & (1UL<<7))) ;
+void usart3_poll_tx(uint8_t d) { // blocks until current byte tx finished
+	while (!(USART3->SR & SPI_SR_BSY)) {
+		;
+	}
 	USART3->DR = d;
 }
 
-uint8_t usart3_poll_rx() // blocks until byte received
-{
-	while(!(USART3->SR & (1UL<<5))) ;
+uint8_t usart3_poll_rx() { // blocks until byte received
+	while (!(USART3->SR & (1UL << 5)))
+		;
 	return USART3->DR;
 }
 
 #define ETERNAL_BLINK() {while(1) {LED_ON(); delay_ms(50); LED_OFF(); delay_ms(50);}}
 
-void mc_flasher(int mcnum)
-{
+void mc_flasher(int mcnum) {
 	__disable_irq();
-	if(mcnum < 1 || mcnum > 4)
-	{
+	if (mcnum < 1 || mcnum > 4) {
 		ETERNAL_BLINK();
 	}
 
@@ -242,16 +293,18 @@ void mc_flasher(int mcnum)
 	USART3->CR1 = 0; // Disable
 	delay_us(10);
 	USART3->SR = 0; // Clear flags
-	USART3->BRR = 16UL<<4 | 4UL; // 115200
-	USART3->CR1 = 1UL<<13 /*USART enable*/ | 1UL<<3 /*TX ena*/ | 1UL<<2 /*RX ena*/;
+	USART3->BRR = 16UL << 4 | 4UL; // 115200
+	USART3->CR1 = USART_CR1_UE /*USART enable*/| USART_CR1_TE /*TX ena*/| USART_CR1_RE /*RX ena*/;
 	delay_us(10);
 
 	/*
 		Reconfigure SPI1 for polling, no interrupts.
 	*/
 
-	while(SPI1->SR&(0b11<<11)); // Wait for TX fifo empty
-	while(SPI1->SR&(1<<7)) ; // Wait until not busy.
+	while (SPI1->SR & (0b11 << 11))
+		; // Wait for TX fifo empty
+	while (SPI1->SR & SPI_SR_BSY)
+		; // Wait until not busy.
 
 	#if NUM_MOTCONS >= 4
 	MC4_CS1();
@@ -265,19 +318,21 @@ void mc_flasher(int mcnum)
 	delay_us(10);
 
 	// disable DMA
-	DMA2->LIFCR = 0b111101UL<<0;  DMA2_Stream0->CR = 0;
-	DMA2->LIFCR = 0b111101UL<<22; DMA2_Stream3->CR = 0;
-	
+	DMA2->LIFCR = 0b111101UL << 0;
+	DMA2_Stream0->CR = 0;
+	DMA2->LIFCR = 0b111101UL << 22;
+	DMA2_Stream3->CR = 0;
+
 	// SPI1 @ APB2 = 60 MHz
-	SPI1->CR1 = 0; // Disable SPI
+	SPI1->CR1 &= ~SPI_CR1_SPE; // Disable SPI
 	delay_us(1);
 	spi1_empty_rx();
 
-	SPI1->CR1 = 1UL<<11 /*16-bit frame*/ | 1UL<<9 /*Software slave management*/ | 1UL<<8 /*SSI bit must be high*/ |
-		0b010UL<<3 /*div 8 = 7.5 MHz*/ | 1UL<<2 /*Master*/;
+	SPI1->CR1 = SPI_CR1_DFF /*16-bit frame*/| SPI_CR1_SSM /*Software slave management*/| SPI_CR1_SSI /*SSI bit must be high*/
+	| SPI_CR1_BR_1 /*div 8 = 7.5 MHz*/| SPI_CR1_MSTR /*Master*/;
 	SPI1->CR2 = 0;
 
-	SPI1->CR1 |= 1UL<<6; // Enable SPI
+	SPI1->CR1 |= SPI_CR1_SPE; // Enable SPI
 
 	mc_flasher_cs0();
 	delay_us(1);
@@ -301,123 +356,111 @@ void mc_flasher(int mcnum)
 
 	spi1_empty_rx();
 
-	while(1)
-	{
+	while (1) {
 		int i;
 		int size = 0;
 		uint8_t cmd = usart3_poll_rx();
-		switch(cmd)
-		{
-			case 100: // Erase
-			{
-			int num_pages = usart3_poll_rx();
-			if(num_pages > 30 || num_pages < 1)
-			{
-				ETERNAL_BLINK();
-			}
-			spi1_empty_rx();
-			mc_flasher_cs0();
-			spi1_poll_tx((100<<8) | num_pages);
+		switch (cmd) {
+			case 100: { // Erase
+				int num_pages = usart3_poll_rx();
+				if (num_pages > 30 || num_pages < 1) {
+					ETERNAL_BLINK();
+				}
+				spi1_empty_rx();
+				mc_flasher_cs0();
+				spi1_poll_tx((100 << 8) | num_pages);
 
-			while(spi1_poll_rx() != 0xaaaa)
-				spi1_poll_tx(0x1111); // Generate dummy data so that we know when the erase is done.
+				while (spi1_poll_rx() != 0xaaaa)
+					spi1_poll_tx(0x1111); // Generate dummy data so that we know when the erase is done.
 
-			spi1_poll_bsy();
-			mc_flasher_cs1();
-			usart3_poll_tx(0); // success code
+				spi1_poll_bsy();
+				mc_flasher_cs1();
+				usart3_poll_tx(0); // success code
 			}
 			break;
-
 
 			case 101: // Write
-			size = usart3_poll_rx()<<8;
-			size |= usart3_poll_rx();
+				size = usart3_poll_rx() << 8;
+				size |= usart3_poll_rx();
 
-			if(size < 50 || size>30*1024 || size&1)
-			{
-				ETERNAL_BLINK();
-			}
-			size>>=1;
+				if (size < 50 || size > 30 * 1024 || size & 1) {
+					ETERNAL_BLINK();
+				}
+				size >>= 1;
 
-			spi1_empty_rx();
-			mc_flasher_cs0();
-			spi1_poll_tx(101<<8);
-			spi1_poll_tx(size);
-			spi1_empty_rx();
-
-			for(i=0; i<size; i++)
-			{
 				spi1_empty_rx();
-				int word = usart3_poll_rx();
-				word    |= usart3_poll_rx()<<8;
-				spi1_poll_tx(word);
-			}
+				mc_flasher_cs0();
+				spi1_poll_tx(101 << 8);
+				spi1_poll_tx(size);
+				spi1_empty_rx();
 
-			spi1_poll_bsy();
-			mc_flasher_cs1();
-			usart3_poll_tx(0); // success code
+				for (i = 0; i < size; i++) {
+					spi1_empty_rx();
+					int word = usart3_poll_rx();
+					word |= usart3_poll_rx() << 8;
+					spi1_poll_tx(word);
+				}
+
+				spi1_poll_bsy();
+				mc_flasher_cs1();
+				usart3_poll_tx(0); // success code
 			break;
 
+			case 102: { // Read
+				size = usart3_poll_rx() << 8;
+				size |= usart3_poll_rx();
 
-			case 102: // Read
-			{
-			size = usart3_poll_rx()<<8;
-			size |= usart3_poll_rx();
-
-			if(size < 50 || size>30*1024 || size&1)
-			{
-				ETERNAL_BLINK();
-			}
-			size>>=1;
-
-			spi1_empty_rx();
-			mc_flasher_cs0();
-			spi1_poll_tx(102<<8);
-			spi1_poll_tx(size);
-			delay_us(100); // Give the slave some time to parse the cmd and prepare the first data.
-			spi1_empty_rx();
-			int mask = 1;
-			i=0;
-			while(1)
-			{
-				int word = spi1_poll_rx();
-				
-				if(!mask)
-				{
-					usart3_poll_tx(word&0xff);
-					usart3_poll_tx((word&0xff00)>>8);
+				if (size < 50 || size > 30 * 1024 || size & 1) {
+					ETERNAL_BLINK();
 				}
-				else
-				{
-					delay_us(200);
-					i=0;
+				size >>= 1;
+
+				spi1_empty_rx();
+				mc_flasher_cs0();
+				spi1_poll_tx(102 << 8);
+				spi1_poll_tx(size);
+				delay_us(100); // Give the slave some time to parse the cmd and prepare the first data.
+				spi1_empty_rx();
+				int mask = 1;
+				i = 0;
+				while (1) {
+					int word = spi1_poll_rx();
+
+					if (!mask) {
+						usart3_poll_tx(word & 0xff);
+						usart3_poll_tx((word & 0xff00) >> 8);
+					} else {
+						delay_us(200);
+						i = 0;
+					}
+
+					if (++i > size)
+						break;
+					spi1_poll_tx(0x1111); // Generate dummies.
+					if (word == 0xcccc) {
+						mask = 0;
+					}
 				}
 
-				if(++i > size) break;
-				spi1_poll_tx(0x1111); // Generate dummies.
-				if(word == 0xcccc)
-				{
-					mask = 0;
-				}
-			}
-
-			spi1_poll_bsy();
-			mc_flasher_cs1();
+				spi1_poll_bsy();
+				mc_flasher_cs1();
 
 			}
 			break;
 
 			case 150:
 			case 151:
-			// Reset motcon and the main cpu.
-			mc_flasher_cs0();
-			spi1_poll_tx(150<<8);
-			delay_ms(1);
-			spi1_poll_bsy();
-			mc_flasher_cs1();
-			NVIC_SystemReset();
-			while(1);
-
+				// Reset motcon and the main cpu.
+				mc_flasher_cs0();
+				spi1_poll_tx(150 << 8);
+				delay_ms(1);
+				spi1_poll_bsy();
+				mc_flasher_cs1();
+				NVIC_SystemReset();
+				while (1) {
+					;
+				}
+			break;
 			default:
 			break;
 

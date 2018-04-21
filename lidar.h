@@ -5,7 +5,7 @@
 	Maintainer: Antti Alhonen <antti.alhonen@iki.fi>
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -93,6 +93,9 @@ extern lidar_scan_t *acq_lidar_scan;
 extern lidar_scan_t *prev_lidar_scan;
 
 extern int lidar_cur_n_samples;
+#ifdef   __cplusplus
+extern "C" {
+#endif
 
 void send_lidar_to_uart(lidar_scan_t* in, int significant_for_mapping);
 
@@ -102,7 +105,7 @@ typedef enum
 	S_LIDAR_UNINIT			= 0,
 	S_LIDAR_OFF			= 1,
 	S_LIDAR_WAITPOWERED		= 2,
-	S_LIDAR_PRECONF_WAIT_READY	= 3, // Quite stupidly, we need to poll whether the motor has reached its initial (default, or the previous) setpoint, 
+	S_LIDAR_PRECONF_WAIT_READY	= 3, // Quite stupidly, we need to poll whether the motor has reached its initial (default, or the previous) setpoint,
 	                          	     // even if we want to just configure it again to whatever we actually want. Then we need to wait again.
 	S_LIDAR_PRECONF_CHECK_SPEED	= 4, // If the speed happenes to be configured to what we actually want, we can skip the next one:
 	S_LIDAR_CONF_SPEED		= 5,
@@ -144,33 +147,36 @@ typedef struct
 } live_lidar_scan_t;
 
 
-void init_lidar();
-void deinit_lidar();
+void init_lidar(void);
+void deinit_lidar(void);
 
 void lidar_on(int fps, int smp);
-void lidar_off();
-void lidar_fsm();
+void lidar_off(void);
+void lidar_fsm(void);
 
-void generate_lidar_ignore();
+void generate_lidar_ignore(void);
 void copy_lidar_half1(int16_t* dst_start);
 void copy_lidar_half2(int16_t* dst_start);
 void copy_lidar_full(int16_t* dst_start);
 
-void lidar_reset_flags();
-void lidar_reset_complete_flag(); 
-void lidar_reset_half_flag(); 
-int lidar_is_complete();
-int lidar_is_half();
+void lidar_reset_flags(void);
+void lidar_reset_complete_flag(void);
+void lidar_reset_half_flag(void);
+int lidar_is_complete(void);
+int lidar_is_half(void);
 
-void lidar_fsm();
+void lidar_fsm(void);
 
 void set_lidar_id(int id);
 
-void lidar_mark_invalid();
+void lidar_mark_invalid(void);
 
 extern point_t lidar_collision_avoidance[360];
 
-extern volatile int lidar_near_filter_on;
-extern volatile int lidar_midlier_filter_on;
+extern volatile bool lidar_near_filter_on;
+extern volatile bool lidar_midlier_filter_on;
+#ifdef   __cplusplus
+}
+#endif
 
 #endif

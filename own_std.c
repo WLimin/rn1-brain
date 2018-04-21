@@ -4,7 +4,7 @@
 	(c) 2017-2018 Pulu Robotics and other contributors
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -18,20 +18,21 @@
 
 #include <inttypes.h>
 
-int o_strnlen(const char* str, int n)
-{
+int o_strnlen(const char* str, int n) {
 	int i = 0;
-	while(*(str++) != 0)
-		if(++i == n) break;
+	while (*(str++) != 0) {
+		if (++i == n) {
+			break;
+		}
+	}
 	return i;
 }
 
-int o_pow(int b, int e)
-{
-	if(e<1) return 1;
-	while(--e)
-	{
-		b*=b;
+int o_pow(int b, int e) {
+	if (e < 1){
+		return 1;}
+	while (--e) {
+		b *= b;
 	}
 	return b;
 }
@@ -49,34 +50,32 @@ int o_pow(int b, int e)
 // p_buf = o_str_append(p_buf, "at the moment.\n");
 // puts(buffer);
 
-char* o_utoa16(uint16_t val, char* str)
-{
-	static const uint16_t div[5] = {10000,1000,100,10,1};
+char* o_utoa16(uint16_t val, char* str) {
+	static const uint16_t div[5] = { 10000, 1000, 100, 10, 1 };
 	int outp_ena = 0;
 	int i;
-	for(i = 0; i < 5; i++)
-	{
-		char c = val/div[i];
-		val -= div[i]*c;
+	for (i = 0; i < 5; i++) {
+		char c = val / div[i];
+		val -= div[i] * c;
 		c += '0';
 
-		if(c != '0' || i == 4)
+		if (c != '0' || i == 4) {
 			outp_ena = 1;
-		if(outp_ena)
+		}
+		if (outp_ena) {
 			*str++ = c;
+		}
 	}
 	*str = 0;
 	return str;
 }
 
-char* o_utoa16_fixed(uint16_t val, char* str)
-{
-	static const uint16_t div[5] = {10000,1000,100,10,1};
+char* o_utoa16_fixed(uint16_t val, char* str) {
+	static const uint16_t div[5] = { 10000, 1000, 100, 10, 1 };
 	int i;
-	for(i = 0; i < 5; i++)
-	{
-		char c = val/div[i];
-		val -= div[i]*c;
+	for (i = 0; i < 5; i++) {
+		char c = val / div[i];
+		val -= div[i] * c;
 		c += '0';
 
 		*str++ = c;
@@ -85,14 +84,12 @@ char* o_utoa16_fixed(uint16_t val, char* str)
 	return str;
 }
 
-char* o_utoa8_fixed(uint8_t val, char* str)
-{
-	static const uint16_t div[3] = {100,10,1};
+char* o_utoa8_fixed(uint8_t val, char* str) {
+	static const uint16_t div[3] = { 100, 10, 1 };
 	int i;
-	for(i = 0; i < 3; i++)
-	{
-		char c = val/div[i];
-		val -= div[i]*c;
+	for (i = 0; i < 3; i++) {
+		char c = val / div[i];
+		val -= div[i] * c;
 		c += '0';
 
 		*str++ = c;
@@ -101,34 +98,34 @@ char* o_utoa8_fixed(uint8_t val, char* str)
 	return str;
 }
 
-char* o_utoa32(uint32_t val, char* str)
-{
-	static const uint32_t div[10] = {1000000000UL,100000000UL,10000000UL,1000000UL,100000UL,10000UL,1000UL,100UL,10UL,1UL};
+char* o_utoa32(uint32_t val, char* str) {
+	static const uint32_t div[10] = { 1000000000UL, 100000000UL, 10000000UL, 1000000UL, 100000UL, 10000UL, 1000UL,
+			100UL, 10UL, 1UL };
 	int outp_ena = 0;
 	int i;
-	for(i = 0; i < 10; i++)
-	{
-		char c = val/div[i];
-		val -= div[i]*c;
+	for (i = 0; i < 10; i++) {
+		char c = val / div[i];
+		val -= div[i] * c;
 		c += '0';
 
-		if(c != '0' || i == 9)
+		if (c != '0' || i == 9) {
 			outp_ena = 1;
-		if(outp_ena)
+		}
+		if (outp_ena) {
 			*str++ = c;
+		}
 	}
 	*str = 0;
 	return str;
 }
 
-char* o_utoa32_fixed(uint32_t val, char* str)
-{
-	static const uint32_t div[10] = {1000000000UL,100000000UL,10000000UL,1000000UL,100000UL,10000UL,1000UL,100UL,10UL,1UL};
+char* o_utoa32_fixed(uint32_t val, char* str) {
+	static const uint32_t div[10] = { 1000000000UL, 100000000UL, 10000000UL, 1000000UL, 100000UL, 10000UL, 1000UL,
+			100UL, 10UL, 1UL };
 	int i;
-	for(i = 0; i < 10; i++)
-	{
-		char c = val/div[i];
-		val -= div[i]*c;
+	for (i = 0; i < 10; i++) {
+		char c = val / div[i];
+		val -= div[i] * c;
 		c += '0';
 
 		*str++ = c;
@@ -137,10 +134,8 @@ char* o_utoa32_fixed(uint32_t val, char* str)
 	return str;
 }
 
-char* o_itoa16(int16_t val, char* str)
-{
-	if(val < 0)
-	{
+char* o_itoa16(int16_t val, char* str) {
+	if (val < 0) {
 		*str++ = '-';
 		val *= -1;
 	}
@@ -148,40 +143,30 @@ char* o_itoa16(int16_t val, char* str)
 	return o_utoa16(val, str);
 }
 
-char* o_itoa16_fixed(int16_t val, char* str)
-{
-	if(val < 0)
-	{
+char* o_itoa16_fixed(int16_t val, char* str) {
+	if (val < 0) {
 		*str++ = '-';
 		val *= -1;
-	}
-	else
-	{
+	} else {
 		*str++ = '+';
 	}
 
 	return o_utoa16_fixed(val, str);
 }
 
-char* o_itoa8_fixed(int8_t val, char* str)
-{
-	if(val < 0)
-	{
+char* o_itoa8_fixed(int8_t val, char* str) {
+	if (val < 0) {
 		*str++ = '-';
 		val *= -1;
-	}
-	else
-	{
+	} else {
 		*str++ = '+';
 	}
 
 	return o_utoa8_fixed(val, str);
 }
 
-char* o_itoa32(int32_t val, char* str)
-{
-	if(val < 0)
-	{
+char* o_itoa32(int32_t val, char* str) {
+	if (val < 0) {
 		*str++ = '-';
 		val *= -1;
 	}
@@ -189,20 +174,19 @@ char* o_itoa32(int32_t val, char* str)
 	return o_utoa32(val, str);
 }
 
-char* o_str_append(char* str1, char* str2)
-{
-	while(*str2)
+char* o_str_append(char* str1, char* str2) {
+	while (*str2) {
 		*str1++ = *str2++;
+	}
 	*str1 = 0;
 	return str1;
 }
 
-char* o_str_cmp(char* str1, char* str2)
-{
-	while(*str2 != 0)
-	{
-		if(*str1 != *str2)
+char* o_str_cmp(char* str1, char* str2) {
+	while (*str2 != 0) {
+		if (*str1 != *str2) {
 			return 0;
+		}
 		str1++;
 		str2++;
 	}
@@ -221,8 +205,7 @@ char* o_str_cmp(char* str1, char* str2)
 // p_msg = o_atoi_append(p_msg, &second); // second = 42
 // puts(p_msg); // prints " ever was."
 
-char* o_atoi_append(char* str, int* val_out)
-{
+char* o_atoi_append(char* str, int* val_out) {
 	char* first;
 	char* last;
 	char* pnt;
@@ -230,31 +213,34 @@ char* o_atoi_append(char* str, int* val_out)
 	int multiplier;
 
 	first = str;
-	while(*first < '0' || *first > '9')
-	{
-		if(first == 0)
+	while (*first < '0' || *first > '9') {
+		if (first == 0) {
 			return first;
+		}
 		first++;
 	}
 
 	last = first;
-	while(*last >= '0' && *last <= '9')
+	while (*last >= '0' && *last <= '9') {
 		last++;
+	}
 
-	if(first == last) return 0;
+	if (first == last) {
+		return 0;
+	}
 
-	pnt = last-1;
+	pnt = last - 1;
 	multiplier = 1;
 	val = 0;
 
-	while(pnt >= first)
-	{
-		val += ((*pnt)-'0')*multiplier;
+	while (pnt >= first) {
+		val += ((*pnt) - '0') * multiplier;
 		multiplier *= 10;
 		pnt--;
 	}
-	if(pnt >= str && *pnt == '-')
+	if (pnt >= str && *pnt == '-') {
 		val *= -1;
+	}
 
 	*val_out = val;
 	return last;

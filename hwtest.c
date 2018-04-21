@@ -4,7 +4,7 @@
 	(c) 2017-2018 Pulu Robotics and other contributors
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -14,7 +14,7 @@
 
 	GNU General Public License version 2 is supplied in file LICENSING.
 
-	
+
 	hwtest provides alternative main(). compile with -DHWTEST to make this happen.
 	While not a completely automated production test suite, this allows you to test
 	the basic HW functionality.
@@ -43,8 +43,7 @@
 
 extern void lidar_test();
 
-void hwtest_main()
-{
+void hwtest_main() {
 	/*
 	XTAL = HSE = 8 MHz
 	PLLCLK = SYSCLK = 120 MHz (max)
@@ -66,30 +65,31 @@ void hwtest_main()
 	delay_ms(1); // to ensure voltage has ramped up
 
 	// 3 wait states for 120MHz and Vcc over 2.7V
-	FLASH->ACR = 1UL<<10 /* Data cache enable */ | 1UL<<9 /* Instr cache enable */ | 1UL<<8 /*prefetch enable*/ | 3UL /*3 wait states*/;
+	FLASH->ACR = 1UL << 10 /* Data cache enable */| 1UL << 9 /* Instr cache enable */| 1UL << 8 /*prefetch enable*/ | 3UL /*3 wait states*/;
 
-	RCC->PLLCFGR = 5UL<<24 /*Q*/ | 1UL<<22 /*HSE as source*/ | 0b00UL<<16 /*P=2*/ | 120UL<<6 /*N*/ | 4UL /*M*/;
-	RCC->CFGR = 0b100UL<<13 /*APB2 div 2*/ | 0b101UL<<10 /*APB1 div 4*/;
+	RCC->PLLCFGR = 5UL << 24 /*Q*/| 1UL << 22 /*HSE as source*/| 0b00UL << 16 /*P=2*/| 120UL << 6 /*N*/| 4UL /*M*/;
+	RCC->CFGR = 0b100UL << 13 /*APB2 div 2*/| 0b101UL << 10 /*APB1 div 4*/;
 
-	RCC->CR |= 1UL<<16; // HSE clock on
-	RCC->CR |= 1UL<<24; // PLL on
+	RCC->CR |= 1UL << 16; // HSE clock on
+	RCC->CR |= 1UL << 24; // PLL on
 
-	while(!(RCC->CR & 1UL<<25)) ; // Wait for PLL
+	while (!(RCC->CR & 1UL << 25))
+		; // Wait for PLL
 	RCC->CFGR |= 0b10; // Change PLL to system clock
-	while((RCC->CFGR & (0b11UL<<2)) != (0b10UL<<2)) ; // Wait for switchover to PLL.
+	while ((RCC->CFGR & (0b11UL << 2)) != (0b10UL << 2))
+		; // Wait for switchover to PLL.
 
-	RCC->AHB1ENR |= 0b111111111 /* PORTA to PORTI */ | 1UL<<22 /*DMA2*/ | 1UL<<21 /*DMA1*/;
-	RCC->APB1ENR |= 1UL<<21 /*I2C1*/ | 1UL<<18 /*USART3*/ | 1UL<<14 /*SPI2*/ | 1UL<<2 /*TIM4*/ | 1UL<<4 /*TIM6*/;
-	RCC->APB2ENR |= 1UL<<12 /*SPI1*/ | 1UL<<4 /*USART1*/ | 1UL<<8 /*ADC1*/;
+	RCC->AHB1ENR |= 0b111111111 /* PORTA to PORTI */| 1UL << 22 /*DMA2*/| 1UL << 21 /*DMA1*/;
+	RCC->APB1ENR |= 1UL << 21 /*I2C1*/| 1UL << 18 /*USART3*/| 1UL << 14 /*SPI2*/| 1UL << 2 /*TIM4*/| 1UL << 4 /*TIM6*/;
+	RCC->APB2ENR |= 1UL << 12 /*SPI1*/| 1UL << 4 /*USART1*/| 1UL << 8 /*ADC1*/;
 
 	delay_us(10);
 
-	GPIOA->AFR[0] = 5UL<<20 | 5UL<<24 | 5UL<<28 /*SPI1*/;
-	GPIOB->AFR[0] = 7UL<<24 | 7UL<<28 /*USART1*/;
-	GPIOB->AFR[1] = 5UL<<20 | 5UL<<24 | 5UL<<28 /*SPI2*/ |
-	                 4UL<<0 | 4UL<<4 /*I2C1*/;
-	GPIOC->AFR[1] = 7UL<<8 | 7UL<<12; // USART3 alternate functions.
-	GPIOD->AFR[1] = 2UL<<28 /*TIM4*/;
+	GPIOA->AFR[0] = 5UL << 20 | 5UL << 24 | 5UL << 28 /*SPI1*/;
+	GPIOB->AFR[0] = 7UL << 24 | 7UL << 28 /*USART1*/;
+	GPIOB->AFR[1] = 5UL << 20 | 5UL << 24 | 5UL << 28 /*SPI2*/| 4UL << 0 | 4UL << 4 /*I2C1*/;
+	GPIOC->AFR[1] = 7UL << 8 | 7UL << 12; // USART3 alternate functions.
+	GPIOD->AFR[1] = 2UL << 28 /*TIM4*/;
 
 #ifdef PCB1A
 
@@ -130,11 +130,10 @@ void hwtest_main()
 
 #ifdef PCB1B
 
-	GPIOA->AFR[0] = 5UL<<20 | 5UL<<24 | 5UL<<28 /*SPI1*/;
-	GPIOB->AFR[0] = 7UL<<24 | 7UL<<28 /*USART1*/;
-	GPIOB->AFR[1] = 5UL<<20 | 5UL<<24 | 5UL<<28 /*SPI2*/ |
-	                 4UL<<0 | 4UL<<4 /*I2C1*/;
-	GPIOC->AFR[1] = 7UL<<8 | 7UL<<12; // USART3 alternate functions.
+	GPIOA->AFR[0] = 5UL << 20 | 5UL << 24 | 5UL << 28 /*SPI1*/;
+	GPIOB->AFR[0] = 7UL << 24 | 7UL << 28 /*USART1*/;
+	GPIOB->AFR[1] = 5UL << 20 | 5UL << 24 | 5UL << 28 /*SPI2*/| 4UL << 0 | 4UL << 4 /*I2C1*/;
+	GPIOC->AFR[1] = 7UL << 8 | 7UL << 12; // USART3 alternate functions.
 
 	             // Mode:
 		     // 00 = General Purpose In
@@ -150,8 +149,8 @@ void hwtest_main()
 	GPIOA->OSPEEDR = 0b00000000000000000100010000000000;
 	GPIOA->PUPDR   = 0b00000001000001000000000000000000;
 
-	GPIOB->ODR     = 1UL<<8 | 1UL<<9; // I2C pins high.
-	GPIOB->OTYPER  = 1UL<<8 | 1UL<<9; // Open drain for I2C.
+	GPIOB->ODR     = 1UL << 8 | 1UL << 9; // I2C pins high.
+	GPIOB->OTYPER  = 1UL << 8 | 1UL << 9; // Open drain for I2C.
 	             //    15141312111009080706050403020100
 	             //     | | | | | | | | | | | | | | | |
 	GPIOB->MODER   = 0b10101001000101011010010100000001;
@@ -175,12 +174,12 @@ void hwtest_main()
 
 
 	// Motor controller nCS signals must be high as early as possible. Motor controllers wait 100 ms at boot for this.
-	#if NUM_MOTCONS >= 4
+#if NUM_MOTCONS >= 4
 	MC4_CS1();
-	#endif
-	#if NUM_MOTCONS >= 3
+#endif
+#if NUM_MOTCONS >= 3
 	MC3_CS1();
-	#endif
+#endif
 	MC2_CS1();
 	MC1_CS1();
 
@@ -201,41 +200,40 @@ void hwtest_main()
 		polling. This is actually not a big deal, and can be later integrated with 10k timebase handler.
 	*/
 
-	USART3->BRR = 16UL<<4 | 4UL;
-	USART3->CR1 = 1UL<<13 /*USART enable*/ | 1UL<<3 /*TX ena*/ | 1UL<<2 /*RX ena*/;
+	USART3->BRR = 16UL << 4 | 4UL;
+	USART3->CR1 = 1UL << 13 /*USART enable*/| 1UL << 3 /*TX ena*/| 1UL << 2 /*RX ena*/;
 
 	uart_print_string_blocking("R#1 OJABOTTI DEV PROTOTYPE REV.A HWTEST       PULUROBOTICS 2017\r\n");
 	uart_print_string_blocking("If you read this, UART TX is working. If you read at 115200bps, clock gen (xtal+pll) is working.\r\n");
 
 	int ena5v = 0;
 	int ena12v = 0;
-	
-	while(1)
-	{
+
+	while (1) {
 		uart_print_string_blocking("\r\n\r\n[ 1 ]  Test motor controller 1\r\n");
 		uart_print_string_blocking("[ 2 ]  Test motor controller 2\r\n");
-		#if NUM_MOTCONS >= 3
+#if NUM_MOTCONS >= 3
 		uart_print_string_blocking("[ 3 ]  Test motor controller 3\r\n");
-		#else
+#else
 		uart_print_string_blocking("[ 3 ]  (No motor controller 3)\r\n");
-		#endif
-		#if NUM_MOTCONS >= 4
+#endif
+#if NUM_MOTCONS >= 4
 		uart_print_string_blocking("[ 4 ]  Test motor controller 4\r\n");
-		#else
+#else
 		uart_print_string_blocking("[ 4 ]  (No motor controller 4)\r\n");
-		#endif
+#endif
 		uart_print_string_blocking("[ 5 ]  Test I2C gyro, accelerometer, compass\r\n");
 
-		if(!ena5v)
+		if (!ena5v) {
 			uart_print_string_blocking("[ 6 ] (   5V off    ) Enable 5V 10A supply\r\n");
-		else
+		} else {
 			uart_print_string_blocking("[ 6 ] (5V turned ON ) Disable 5V 10A supply\r\n");
-
-		if(!ena12v)
+		}
+		if (!ena12v) {
 			uart_print_string_blocking("[ 7 ] (   12V off    ) Enable 12V 1.5A supply\r\n");
-		else
+		} else {
 			uart_print_string_blocking("[ 7 ] (12V turned ON ) Disable 12V 1.5A supply\r\n");
-
+		}
 
 		uart_print_string_blocking("[ 8 ]  Test charger subsystem + voltage meas. ADC\r\n");
 		uart_print_string_blocking("[ 9 ]  Try requesting KILL_PWR (does a hard reboot; or a complete shutdown with emptyish battery)\r\n");
@@ -244,8 +242,7 @@ void hwtest_main()
 
 		char buffer[1000];
 
-		while(!(USART3->SR & (1<<5)))
-		{
+		while (!(USART3->SR & (1 << 5))) {
 			LED_ON();
 			delay_ms(50);
 			LED_OFF();
@@ -254,35 +251,33 @@ void hwtest_main()
 		uint8_t cmd = USART3->DR;
 		LED_OFF();
 
-		switch(cmd)
-		{
+		switch (cmd) {
 			case '1':
 			case '2':
-			#if NUM_MOTCONS >= 3
+#if NUM_MOTCONS >= 3
 			case '3':
-			#endif
-			#if NUM_MOTCONS >= 4
+#endif
+#if NUM_MOTCONS >= 4
 			case '4':
-			#endif
+#endif
 			{
 				uart_print_string_blocking("Enable power with w. Stop with q.\r\n");
 
-				int motcon = cmd-'1';
+				int motcon = cmd - '1';
 				init_motcons();
 
 				int cnt = 0;
-				while(1)
-				{
-					for(int i=0; i<250; i++)
-					{
+				while (1) {
+					for (int i = 0; i < 250; i++) {
 						motcon_fsm();
 						delay_ms(1);
 					}
 
 					uint8_t subcmd = 0;
-					if(USART3->SR & (1<<5)) subcmd = USART3->DR;
-					if(subcmd == 'q')
-					{
+					if (USART3->SR & (1 << 5)) {
+						subcmd = USART3->DR;
+					}
+					if (subcmd == 'q') {
 						motcon_tx[motcon].state = 0;
 						motcon_tx[motcon].cur_limit = 0;
 						motcon_fsm();
@@ -295,26 +290,24 @@ void hwtest_main()
 						delay_ms(1);
 						motcon_fsm();
 						break;
-					}
-					else if(subcmd == 'w')
-					{
+					} else if (subcmd == 'w') {
 						motcon_tx[motcon].state = 5;
 						motcon_tx[motcon].cur_limit = 6000;
 					}
 
 					cnt++;
 
-					if(cnt == 1)
+					if (cnt == 1) {
 						motcon_tx[motcon].speed = 600;
-					else if(cnt == 10)
+					} else if (cnt == 10) {
 						motcon_tx[motcon].speed = 0;
-					else if(cnt == 15)
+					} else if (cnt == 15) {
 						motcon_tx[motcon].speed = -600;
-					else if(cnt == 25)
+					} else if (cnt == 25) {
 						motcon_tx[motcon].speed = 0;
-					else if(cnt == 30)
+					} else if (cnt == 30) {
 						cnt = 0;
-
+					}
 					char *p_buf = buffer;
 					p_buf = o_str_append(p_buf, "status=");
 					p_buf = o_utoa16_fixed(motcon_rx[motcon].status, p_buf);
@@ -340,11 +333,9 @@ void hwtest_main()
 			}
 			break;
 
-			case '5':
-			{
+			case '5': {
 				int ret;
-				while( (ret=init_gyro_xcel_compass()) != 0)
-				{
+				while ((ret = init_gyro_xcel_compass()) != 0) {
 					char *p_buf = buffer;
 					p_buf = o_str_append(p_buf, "gyro_xcel_compass init failed with code=");
 					p_buf = o_itoa16(ret, p_buf);
@@ -352,16 +343,17 @@ void hwtest_main()
 					uart_print_string_blocking(buffer);
 					delay_ms(500);
 					uint8_t subcmd = 0;
-					if(USART3->SR & (1<<5)) subcmd = USART3->DR;
-					if(subcmd == 'q')
+					if (USART3->SR & (1 << 5)) {
+						subcmd = USART3->DR;
+					}
+					if (subcmd == 'q') {
 						break;
+					}
 				}
 				uart_print_string_blocking("Stop with q.\r\n");
 
-				while(1)
-				{
-					for(int i=0; i<1000; i++)
-					{
+				while (1) {
+					for (int i = 0; i < 1000; i++) {
 						gyro_xcel_compass_fsm();
 						delay_us(90);
 					}
@@ -376,7 +368,7 @@ void hwtest_main()
 					p_buf = o_str_append(p_buf, " Z=");
 					p_buf = o_itoa16_fixed(latest_gyro->z, p_buf);
 
-					#ifdef EXTRAGYRO
+#ifdef EXTRAGYRO
 					p_buf = o_str_append(p_buf, "\r\nGYRO2:   status=");
 					p_buf = o_utoa8_fixed(latest_extragyro->status_reg, p_buf);
 					p_buf = o_str_append(p_buf, " X=");
@@ -385,7 +377,7 @@ void hwtest_main()
 					p_buf = o_itoa16_fixed(latest_extragyro->y, p_buf);
 					p_buf = o_str_append(p_buf, " Z=");
 					p_buf = o_itoa16_fixed(latest_extragyro->z, p_buf);
-					#endif
+#endif
 
 					p_buf = o_str_append(p_buf, "\r\nXCEL:    status=");
 					p_buf = o_utoa8_fixed(latest_xcel->status_reg, p_buf);
@@ -406,7 +398,6 @@ void hwtest_main()
 					p_buf = o_str_append(p_buf, " state=");
 					p_buf = o_itoa32(i2c1_state, p_buf);
 
-
 					p_buf = o_str_append(p_buf, "\r\nCOMPASS: status=");
 					p_buf = o_utoa8_fixed(latest_compass->status_reg, p_buf);
 					p_buf = o_str_append(p_buf, " X=");
@@ -420,74 +411,64 @@ void hwtest_main()
 					delay_ms(150);
 
 					uint8_t subcmd = 0;
-					if(USART3->SR & (1<<5)) subcmd = USART3->DR;
-					if(subcmd == 'q')
+					if (USART3->SR & (1 << 5)) {
+						subcmd = USART3->DR;
+					}
+					if (subcmd == 'q') {
 						break;
-
-
+					}
 				}
 			}
 			break;
 
-			case '6':
-			{
-				if(!ena5v)
-				{
+			case '6': {
+				if (!ena5v) {
 					ena5v = 1;
 					PSU5V_ENA();
-				}
-				else
-				{
+				} else {
 					ena5v = 0;
 					PSU5V_DIS();
 				}
 			}
 			break;
 
-			case '7':
-			{
-				if(!ena12v)
-				{
+			case '7': {
+				if (!ena12v) {
 					ena12v = 1;
 					PSU12V_ENA();
-				}
-				else
-				{
+				} else {
 					ena12v = 0;
 					PSU12V_DIS();
 				}
 			}
 			break;
 
-			case '8':
-			{
-
-				ADC->CCR = 1UL<<23 /* temp sensor and Vref enabled */ | 0b00<<16 /*prescaler 2 -> 30MHz*/;
-				ADC1->CR1 = 1UL<<8 /* SCAN mode */;
-				ADC1->CR2 = 1UL<<9 /* Magical DDS bit to actually enable DMA requests */ | 1UL<<8 /*DMA ena*/ | 1UL<<1 /*continuous*/;
-				ADC1->SMPR1 = 0b010UL<<6 /*ch12 (bat voltage): 28 cycles*/;
-				ADC1->SQR1 = (1  -1)<<20 /* sequence length */;
-				ADC1->SQR3 = 12<<0; // Ch12 first in sequence
+			case '8': {
+				ADC->CCR = 1UL << 23 /* temp sensor and Vref enabled */| 0b00 << 16 /*prescaler 2 -> 30MHz*/;
+				ADC1->CR1 = 1UL << 8 /* SCAN mode */;
+				ADC1->CR2 = 1UL << 9 /* Magical DDS bit to actually enable DMA requests */| 1UL << 8 /*DMA ena*/ | 1UL << 1 /*continuous*/;
+				ADC1->SMPR1 = 0b010UL << 6 /*ch12 (bat voltage): 28 cycles*/;
+				ADC1->SQR1 = (1 - 1) << 20 /* sequence length */;
+				ADC1->SQR3 = 12 << 0; // Ch12 first in sequence
 
 				ADC1->CR2 |= 1; // Enable ADC
 
-				DMA2_Stream4->PAR = (uint32_t)&(ADC1->DR);
-				DMA2_Stream4->M0AR = (uint32_t)(adc_data);
-				DMA2_Stream4->NDTR = ADC_ITEMS*ADC_SAMPLES;
-				DMA2_Stream4->CR = 0UL<<25 /*Channel*/ | 0b01UL<<16 /*med prio*/ | 0b01UL<<13 /*16-bit mem*/ | 0b01UL<<11 /*16-bit periph*/ |
-						   1UL<<10 /*mem increment*/ | 1UL<<8 /*circular*/;
+				DMA2_Stream4->PAR = (uint32_t) &(ADC1->DR);
+				DMA2_Stream4->M0AR = (uint32_t) (adc_data);
+				DMA2_Stream4->NDTR = ADC_ITEMS * ADC_SAMPLES;
+				DMA2_Stream4->CR = 0UL << 25 /*Channel*/| 0b01UL << 16 /*med prio*/| 0b01UL << 13 /*16-bit mem*/
+						| 0b01UL << 11 /*16-bit periph*/| 1UL << 10 /*mem increment*/| 1UL << 8 /*circular*/;
 
-				DMA2->LIFCR = 0b111101UL<<0;
+				DMA2->LIFCR = 0b111101UL << 0;
 				DMA2_Stream4->CR |= 1UL; // Enable ADC DMA
 
 				delay_ms(1);
 
-				ADC1->CR2 |= 1UL<<30; // Start converting.
+				ADC1->CR2 |= 1UL << 30; // Start converting.
 
 				uart_print_string_blocking("a = enable charging, s = disable charging, q = stop\r\n");
 
-				while(1)
-				{
+				while (1) {
 					char *p_buf = buffer;
 					p_buf = o_str_append(p_buf, "BATT VOLTAGE ADC = ");
 					p_buf = o_utoa16_fixed(adc_data[0].bat_v, p_buf);
@@ -497,43 +478,39 @@ void hwtest_main()
 					p_buf = o_utoa16_fixed(get_bat_v(), p_buf);
 					p_buf = o_str_append(p_buf, "mV ");
 
-					if(CHA_RUNNING())
+					if (CHA_RUNNING()) {
 						p_buf = o_str_append(p_buf, " (  CHARGING  )");
-					else
+					} else {
 						p_buf = o_str_append(p_buf, " (not charging)");
-
-					if(CHA_FINISHED())
+					}
+					if (CHA_FINISHED()) {
 						p_buf = o_str_append(p_buf, " (  FINISHED  )\r\n");
-					else
+					} else {
 						p_buf = o_str_append(p_buf, " (not finished)\r\n");
-
+					}
 					uart_print_string_blocking(buffer);
 
 					delay_ms(300);
 					uint8_t subcmd = 0;
-					if(USART3->SR & (1<<5)) subcmd = USART3->DR;
-					if(subcmd == 'q')
+					if (USART3->SR & (1 << 5)) {
+						subcmd = USART3->DR;
+					}
+					if (subcmd == 'q') {
 						break;
-					else if(subcmd == 'a')
-					{
+					} else if (subcmd == 'a') {
 						uart_print_string_blocking("==> Charging enabled\r\n");
 						CHARGER_ENA();
-					}
-					else if(subcmd == 's')
-					{
+					} else if (subcmd == 's') {
 						uart_print_string_blocking("==> Charging disabled\r\n");
 						CHARGER_DIS();
 					}
-
 				}
 				uart_print_string_blocking("Charging disabled\r\n");
 				CHARGER_DIS();
-
 			}
 			break;
 
-			case '9':
-			{
+			case '9': {
 				DO_KILL_PWR();
 				delay_ms(100);
 				uart_print_string_blocking("\r\n    F A I L U R E !   KILL_PWR failed to reboot, since we are still running :(\r\n");
@@ -541,9 +518,7 @@ void hwtest_main()
 			}
 			break;
 
-
-			case 'a':
-			{
+			case 'a': {
 				uart_print_string_blocking("0 = off\r\n");
 				uart_print_string_blocking("1 = 1 FPS 500Hz\r\n");
 				uart_print_string_blocking("2 = 2 FPS 500Hz\r\n");
@@ -558,9 +533,7 @@ void hwtest_main()
 				init_lidar();
 				__enable_irq();
 
-
-				while(1)
-				{
+				while (1) {
 					extern int lidar_dbg1, lidar_dbg2;
 
 					char *p_buf = buffer;
@@ -595,8 +568,7 @@ void hwtest_main()
 					p_buf = o_str_append(p_buf, " PREV IMG = ");
 
 
-					for(int i = 0; i < 4; i++)
-					{
+					for (int i = 0; i < 4; i++) {
 						p_buf = o_itoa16_fixed(prev_lidar_scan->scan[i].x, p_buf);
 						p_buf = o_str_append(p_buf, ",");
 						p_buf = o_itoa16_fixed(prev_lidar_scan->scan[i].y, p_buf);
@@ -609,72 +581,52 @@ void hwtest_main()
 
 					uart_print_string_blocking("\r\n");
 
-					for(int i = 0; i < 100; i++)
-					{
+					for (int i = 0; i < 100; i++) {
 						delay_us(950);
 						lidar_fsm();
 					}
 
 					uint8_t subcmd = 0;
-					if(USART3->SR & (1<<5)) subcmd = USART3->DR;
-					if(subcmd == 'q')
+					if (USART3->SR & (1 << 5)) {
+						subcmd = USART3->DR;
+					}
+					if (subcmd == 'q') {
 						break;
-					else if(subcmd == '0')
-					{
+					} else if (subcmd == '0') {
 						uart_print_string_blocking("\r\n==> Turn off\r\n\r\n");
 						lidar_off();
-					}
-					else if(subcmd == '1')
-					{
+					} else if (subcmd == '1') {
 						uart_print_string_blocking("\r\n==> Turn on 1fps 500Hz\r\n\r\n");
 						lidar_on(1, 1);
-					}
-					else if(subcmd == '2')
-					{
+					} else if (subcmd == '2') {
 						uart_print_string_blocking("\r\n==> Turn on 2fps 500Hz\r\n\r\n");
 						lidar_on(2, 1);
-					}
-					else if(subcmd == '3')
-					{
+					} else if (subcmd == '3') {
 						uart_print_string_blocking("\r\n==> Turn on 3fps 500Hz\r\n\r\n");
 						lidar_on(3, 1);
-					}
-					else if(subcmd == '4')
-					{
+					} else if (subcmd == '4') {
 						uart_print_string_blocking("\r\n==> Turn on 4fps 500Hz\r\n\r\n");
 						lidar_on(4, 1);
-					}
-					else if(subcmd == '5')
-					{
+					} else if (subcmd == '5') {
 						uart_print_string_blocking("\r\n==> Turn on 1fps 1000Hz\r\n\r\n");
 						lidar_on(1, 3);
-					}
-					else if(subcmd == '6')
-					{
+					} else if (subcmd == '6') {
 						uart_print_string_blocking("\r\n==> Turn on 2fps 1000Hz\r\n\r\n");
 						lidar_on(2, 3);
-					}
-					else if(subcmd == '7')
-					{
+					} else if (subcmd == '7') {
 						uart_print_string_blocking("\r\n==> Turn on 3fps 1000Hz\r\n\r\n");
 						lidar_on(3, 3);
-					}
-					else if(subcmd == '8')
-					{
+					} else if (subcmd == '8') {
 						uart_print_string_blocking("\r\n==> Turn on 4fps 1000Hz\r\n\r\n");
 						lidar_on(4, 3);
 					}
-
 				}
 				__disable_irq();
-
 			}
 			break;
 
 	#ifdef PCB1B
-			case 'b':
-			{
-
+			case 'b': {
 				LEFT_BLINKER_ON();
 				delay_ms(200);
 				LEFT_BLINKER_OFF();
@@ -692,16 +644,11 @@ void hwtest_main()
 				RIGHT_BLINKER_OFF();
 				FWD_LIGHT_OFF();
 				LEFT_BLINKER_OFF();
-
-
 			}
 			break;
-	#endif
+#endif
 			default:
 			break;
-
 		}
-
 	}
-
 }

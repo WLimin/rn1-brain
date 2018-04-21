@@ -1,3 +1,9 @@
 RN#1 main MCU software.
 
 Based on STM32F205VFT6 Cortex M3 MCU.
+LQFP100
+Flash 768 kBytes
+RAM   128 kByte
+IO    82
+Freq  120 MHz
+5.207(us$,10kU)

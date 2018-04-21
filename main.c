@@ -5,7 +5,7 @@
 	Maintainer: Antti Alhonen <antti.alhonen@iki.fi>
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -114,14 +114,13 @@ volatile int millisec;
 volatile int us100;
 extern volatile int do_compass_round;
 
-void power_and_led_fsm();
-void pulutof_fsm();
+void power_and_led_fsm(void);
+void pulutof_fsm(void);
 
-void timebase_10k_handler()
-{
-	static int sec_gen = 0;
-	static int cnt_10k = 0;
-	static int gyro_xcel_compass_status;
+void timebase_10k_handler(void) { //100us
+	static uint32_t sec_gen = 0;
+	static uint32_t cnt_10k = 0;
+	static uint32_t gyro_xcel_compass_status;
 
 	us100++;
 
@@ -130,11 +129,11 @@ void timebase_10k_handler()
 //	int starttime = TIM6->CNT;
 
 	// Things expecting 10kHz calls:
-	gyro_xcel_compass_status |= gyro_xcel_compass_fsm();
+	gyro_xcel_compass_status |= gyro_xcel_compass_fsm(); //Read sensors data.
 
-	#ifdef SONARS_INSTALLED
+#ifdef SONARS_INSTALLED
 	sonar_fsm_10k();
-	#endif
+#endif
 
 	// Send one more character through UART.
 	// With 115200 baud rate, this will produce 10 kbytes/s stream,
@@ -142,93 +141,87 @@ void timebase_10k_handler()
 	uart_10k_fsm();
 
 	// Things expecting 1kHz calls:
-	if(cnt_10k == 0)
-	{
-		handle_uart_message(); // 3.33 kHz min
+	switch (cnt_10k) {
+		case 0: {
+			handle_uart_message(); // 3.33 kHz min
 
-		millisec++;
-		sec_gen++;
-		if(sec_gen >= 1000)
-		{
-			seconds++;
-			sec_gen = 0;
+			millisec++;
+			sec_gen++;
+			if (sec_gen >= 1000) {
+				seconds++;
+				sec_gen = 0;
+			}
+			motcon_fsm();
+
+#ifdef OPTFLOW_INSTALLED
+			int dx = 0;
+			int dy = 0;
+			optflow_fsm(&dx, &dy);
+
+			optflow_int_x += dx;
+			optflow_int_y += dy;
+#endif
+
 		}
-		motcon_fsm();
-
-	#ifdef OPTFLOW_INSTALLED
-		int dx = 0;
-		int dy = 0;
-		optflow_fsm(&dx, &dy);
-
-		optflow_int_x += dx;
-		optflow_int_y += dy;
-	#endif
-
-	}
-	else if(cnt_10k == 1)
-	{
-		motcon_fsm();
-	}
-	else if(cnt_10k == 2)
-	{
-		handle_uart_message(); // 3.33 kHz min
-		navig_fsm1();
-	}
-	else if(cnt_10k == 3)
-	{
-		navig_fsm2();
-	}
-	else if(cnt_10k == 4)
-	{
-		handle_uart_message(); // 3.33 kHz min
-	}
-	else if(cnt_10k == 5)
-	{
-		run_feedbacks(gyro_xcel_compass_status);
-		gyro_xcel_compass_status = 0;
-	}
-	else if(cnt_10k == 6)
-	{
-		handle_uart_message(); // 3.33 kHz min
-		lidar_fsm();
-		motcon_fsm();
-	}
-	else if(cnt_10k == 7)
-	{
-		power_and_led_fsm();
-		#ifdef PULUTOF1
+		break;
+		case 1:
+			motcon_fsm();
+		break;
+		case 2:
+			handle_uart_message(); // 3.33 kHz min
+			navig_fsm1();
+		break;
+		case 3:
+			navig_fsm2();
+		break;
+		case 4:
+			handle_uart_message(); // 3.33 kHz min
+		break;
+		case 5:
+			run_feedbacks(gyro_xcel_compass_status);	//1kHz
+			gyro_xcel_compass_status = 0;
+		break;
+		case 6:
+			handle_uart_message(); // 3.33 kHz min
+			lidar_fsm();
+			motcon_fsm();
+		break;
+		case 7:
+			power_and_led_fsm();
+#ifdef PULUTOF1
 			pulutof_fsm();
-		#endif
-	}
-	else if(cnt_10k == 8)
-	{
-		handle_uart_message(); // 3.33 kHz min
-		if(do_compass_round)
-		{
-			do_compass_round = 0;
-			compass_fsm(1);
-		}
-		else
-			compass_fsm(0);
-	}
-	else if(cnt_10k == 9)
-	{
-		motcon_fsm();
-		static int adc_decim = 0;
-		if(++adc_decim >= 10)
-		{
-			ADC1->CR2 |= 1UL<<30; // Do ADC seq at 100 Hz
-			adc_decim = 0;
+#endif
+		break;
+		case 8:
+			handle_uart_message(); // 3.33 kHz min
+			if (do_compass_round) {
+				do_compass_round = 0;
+				compass_fsm(1);
+			} else {
+				compass_fsm(0);
+			}
+		break;
+		case 9: {
+			motcon_fsm();
+			static int adc_decim = 0;
+			if (++adc_decim >= 10) {
+				ADC1->CR2 |= ADC_CR2_SWSTART; // Do ADC seq at 100 Hz. Start Conversion of regular channels
+				adc_decim = 0;
+			}
+
 		}
 
+		break;
+		default:
+		break;
 	}
-
 
 	cnt_10k++;
-	if(cnt_10k > 9) cnt_10k = 0;
+	if (cnt_10k > 9) {
+		cnt_10k = 0;
+	}
 //	int tooktime = TIM6->CNT - starttime;
-//	if(tooktime > dbg[0])
-//	{
+//	if (tooktime > dbg[0]) {
 //		dbg[0] = tooktime;
 //		dbg[1] = cnt_10k; // which takes longest.
 //	}
@@ -248,25 +241,26 @@ extern int64_t xcel_long_integrals[3];
 
 volatile adc_data_t adc_data[ADC_SAMPLES];
 
-int get_bat_v() // in mv
-{
+int get_bat_v(void) { // in mv
 	// theoretical: 0.5*1/4096*3300*(470+75)/75 = 2.927246
 	return (((int)(adc_data[0].bat_v + adc_data[1].bat_v))*29272 / 10000);
 }
 
-int get_cha_v() // in mv
-{
+int get_cha_v(void) {	// in mv
 	// theoretical: 0.5*1/4096*3300*(470+52.3)/52.3 = 4.02292867
 	return (((adc_data[0].cha_v + adc_data[1].cha_v))*40229 / 10000);
 }
 
 
-int get_bat_percentage()
-{
+int get_bat_percentage(void) {
 	int bat_v = get_bat_v();
 	int bat_percentage = (100*(bat_v-16000))/(21000-16000);
-	if(bat_percentage < 0) bat_percentage = 0;
-	if(bat_percentage > 127) bat_percentage = 127;
+	if (bat_percentage < 0) {
+		bat_percentage = 0;
+	}
+	if (bat_percentage > 127) {
+		bat_percentage = 127;
+	}
 	return bat_percentage;
 }
 
@@ -281,8 +275,7 @@ volatile int robot_is_in_charger;
 
 #define BAT_EMERG_LVL 21500 //21500 = 4.30V/cell
 
-void power_and_led_fsm()
-{
+void power_and_led_fsm(void) {
 	static int bat_warn_cnt = 0;
 	static int bat_emerg_cnt = 0;
 	static int bat_emerg_rereaction_cnt = 0;
@@ -294,35 +287,30 @@ void power_and_led_fsm()
 	int bat_perc = get_bat_percentage();
 
 	static int led_cnt = 0;
-	if(++led_cnt >= 1000) led_cnt = 0;
+	if (++led_cnt >= 1000) {
+		led_cnt = 0;
+	}
 
-	if(cha_v > 20000)
+	if (cha_v > 20000) {
 		robot_is_in_charger = 1;
-	else
+	} else {
 		robot_is_in_charger = 0;
+	}
 
-
-
-	if(bat_emerg_on)
-	{
+	if (bat_emerg_on) {
 		FWD_LIGHT_OFF();
-		if(led_cnt == 0 || led_cnt == 200 || led_cnt == 400 || led_cnt == 600 || led_cnt == 800)
-		{
+		if (led_cnt == 0 || led_cnt == 200 || led_cnt == 400 || led_cnt == 600 || led_cnt == 800) {
 			LEFT_BLINKER_ON();
 			RIGHT_BLINKER_ON();
-		}
-		else if(led_cnt == 100 || led_cnt == 300 || led_cnt == 500 || led_cnt == 700 || led_cnt == 900)
-		{
+		} else if (led_cnt == 100 || led_cnt == 300 || led_cnt == 500 || led_cnt == 700 || led_cnt == 900) {
 			LEFT_BLINKER_OFF();
 			RIGHT_BLINKER_OFF();
 		}
 
-		if(bat_v > BAT_EMERG_LVL)
-		{
+		if (bat_v > BAT_EMERG_LVL) {
 			// condition didn't clear
 			bat_emerg_rereaction_cnt++;
-			if(bat_emerg_rereaction_cnt > 30000)
-			{
+			if (bat_emerg_rereaction_cnt > 30000) {
 				bat_emerg_rereaction_cnt = 0;
 				bat_emerg_action = 1;
 				robot_is_in_charger = 0; // try with full power - at least the input fuse blows!
@@ -332,96 +320,82 @@ void power_and_led_fsm()
 		return;
 	}
 
-	if(bat_v > BAT_EMERG_LVL) 
-	{
+	if (bat_v > BAT_EMERG_LVL) {
 		bat_emerg_cnt++;
 
-		if(bat_emerg_cnt > 500)
-		{
+		if (bat_emerg_cnt > 500) {
 			bat_emerg_on = 1;
 			bat_emerg_action = 1;
 		}
-	}
-	else
-	{
+	} else {
 		bat_emerg_cnt = 0;
 	}
 
 
-	if(bat_perc < 30)
-	{
+	if (bat_perc < 30) {
 		bat_warn_cnt++;
 
-		if(bat_warn_cnt > 500)
-		{
+		if (bat_warn_cnt > 500) {
 			leds_blink_low_bat = 1;
 		}
-	}
-	else
-	{
+	} else {
 		bat_warn_cnt = 0;
 		leds_blink_low_bat = 0;
 	}
 
-	if(bat_perc < 5)
-	{
+	if (bat_perc < 5) {
 		bat_shdn_cnt++;
 
-		if(bat_shdn_cnt > 500)
-		{
+		if (bat_shdn_cnt > 500) {
 			DO_KILL_PWR();
 		}
-	}
-	else
-	{
+	} else {
 		bat_shdn_cnt = 0;
 	}
-	
-	if(leds_blink_low_bat)
-	{
+
+	if (leds_blink_low_bat) {
 		// Low battery warning: blink a distinct ti-ti-ti----ti-ti-ti----- pattern with both blinkers
 
 		FWD_LIGHT_OFF();
-		if(led_cnt == 0 || led_cnt == 200 || led_cnt == 400)
-		{
+		if (led_cnt == 0 || led_cnt == 200 || led_cnt == 400) {
 			LEFT_BLINKER_ON();
 			RIGHT_BLINKER_ON();
-		}
-		else if(led_cnt == 50 || led_cnt == 250 || led_cnt == 450)
-		{
+		} else if (led_cnt == 50 || led_cnt == 250 || led_cnt == 450) {
 			LEFT_BLINKER_OFF();
 			RIGHT_BLINKER_OFF();
 		}
-	}
-	else if(leds_control_by_motion)
-	{	
-		if(leds_motion_blink_left && led_cnt < 500)  LEFT_BLINKER_ON();  else LEFT_BLINKER_OFF();
-		if(leds_motion_blink_right && led_cnt < 500) RIGHT_BLINKER_ON(); else RIGHT_BLINKER_OFF();
-		if(leds_motion_forward) FWD_LIGHT_ON(); else FWD_LIGHT_OFF();
-
-		if(!leds_motion_blink_left && !leds_motion_blink_right && !leds_motion_forward)
-		{
-			if(led_cnt < 4)
-			{
+	} else if (leds_control_by_motion) {
+		if (leds_motion_blink_left && led_cnt < 500) {
+			LEFT_BLINKER_ON();
+		} else {
+			LEFT_BLINKER_OFF();
+		}
+		if (leds_motion_blink_right && led_cnt < 500) {
+			RIGHT_BLINKER_ON();
+		} else {
+			RIGHT_BLINKER_OFF();
+		}
+		if (leds_motion_forward) {
+			FWD_LIGHT_ON();
+		} else {
+			FWD_LIGHT_OFF();
+		}
+		if (!leds_motion_blink_left && !leds_motion_blink_right && !leds_motion_forward) {
+			if (led_cnt < 4) {
 				LEFT_BLINKER_ON();
 				RIGHT_BLINKER_ON();
 				FWD_LIGHT_ON();
-			}
-			else
-			{
+			} else {
 				LEFT_BLINKER_OFF();
 				RIGHT_BLINKER_OFF();
 				FWD_LIGHT_OFF();
 			}
 		}
-	}
-	else
-	{
+	} else {
 		LEFT_BLINKER_OFF();
 		RIGHT_BLINKER_OFF();
 		FWD_LIGHT_OFF();
 	}
-
 }
 
 volatile uint32_t random = 123;
@@ -430,17 +404,20 @@ extern volatile int lidar_scan_ready;
 
 volatile int dbg_sending_lidar = 0;
 
-void uart_send_dbg_teleportation_bug()
-{
-	if(uart_busy())
+void uart_send_dbg_teleportation_bug(void) {
+	if (uart_busy()) {
 		return;
-	
-	if(dbg_teleportation_bug_report)
-	{
+	}
+
+	if (dbg_teleportation_bug_report) {
 		send_uart_volatile(&dbg_teleportation_bug_data, 0xEE, sizeof(dbg_teleportation_bug_data_t));
-		while(uart_busy());
+		while (uart_busy()) {
+			;
+		}
 		send_uart_volatile(&dbg_teleportation_extra, 0xEF, sizeof(dbg_teleportation_extra_t));
-		while(uart_busy());
+		while (uart_busy()) {
+			;
+		}
 		dbg_teleportation_bug_report = 0;
 	}
 }
@@ -456,15 +433,12 @@ volatile int send_settings;
 typedef struct __attribute__((packed)) __attribute__((aligned(4)))
 {
 	uint32_t header;
-
 	pos_t robot_pos;
-
 } robot_to_pulutof_t;
 
 typedef struct __attribute__((packed)) __attribute__((aligned(4)))
 {
 	uint32_t header;
-
 	pos_t dummy;
 
 } pulutof_to_robot_t;
@@ -473,51 +447,50 @@ volatile robot_to_pulutof_t robot_to_pulutof __attribute__((aligned(4))) = {0x01
 volatile pulutof_to_robot_t pulutof_to_robot __attribute__((aligned(4)));
 
 volatile int pulutof_init_ok = 0;
-void init_pulutof()
-{
+void init_pulutof() {
 	PULUTOF_CS1();
 
 	// SPI2 @ APB1 = 30 MHz
 
 	// DMA1 STREAM 3 ch0 = PULUTOF RX
-	DMA1_Stream3->PAR = (uint32_t)&(SPI2->DR);
-	DMA1_Stream3->M0AR = (uint32_t)(&pulutof_to_robot);
+	DMA1_Stream3->PAR = (uint32_t) &(SPI2->DR);
+	DMA1_Stream3->M0AR = (uint32_t) (&pulutof_to_robot);
 	DMA1_Stream3->NDTR = sizeof pulutof_to_robot;
-	DMA1_Stream3->CR = 0UL<<25 /*Channel*/ | 0b01UL<<16 /*med prio*/ | 0b00UL<<13 /*8-bit mem*/ | 0b00UL<<11 /*8-bit periph*/ |
-	                   1UL<<10 /*mem increment*/ | 0UL<<8 /*CIRCULAR off*/;
+	DMA1_Stream3->CR = 0UL << 25 /*Channel*/| 0b01UL << 16 /*med prio*/| 0b00UL << 13 /*8-bit mem*/
+			| 0b00UL << 11 /*8-bit periph*/| 1UL << 10 /*mem increment*/| 0UL << 8 /*CIRCULAR off*/;
 	// DMA1 STREAM 4 ch0 = PULUTOF TX
-	DMA1_Stream4->PAR = (uint32_t)&(SPI2->DR);
-	DMA1_Stream4->M0AR = (uint32_t)(&robot_to_pulutof);
+	DMA1_Stream4->PAR = (uint32_t) &(SPI2->DR);
+	DMA1_Stream4->M0AR = (uint32_t) (&robot_to_pulutof);
 	DMA1_Stream4->NDTR = sizeof robot_to_pulutof;
-	DMA1_Stream4->CR = 0UL<<25 /*Channel*/ | 0b01UL<<16 /*med prio*/ | 0b00UL<<13 /*8-bit mem*/ | 0b00UL<<11 /*8-bit periph*/ |
-	                   1UL<<10 /*mem increment*/ | 0b01<<6 /*mem->periph*/ | 0UL<<8 /*CIRCULAR off*/;
+	DMA1_Stream4->CR = 0UL << 25 /*Channel*/| 0b01UL << 16 /*med prio*/| 0b00UL << 13 /*8-bit mem*/
+			| 0b00UL << 11 /*8-bit periph*/| 1UL << 10 /*mem increment*/| 0b01 << 6 /*mem->periph*/
+			| 0UL << 8 /*CIRCULAR off*/;
 
-	SPI2->CR1 = 0UL<<11 /*8-bit frame*/ | 1UL<<9 /*Software slave management*/ | 1UL<<8 /*SSI bit must be high*/ |
-		0b001UL<<3 /*div 4 = 7.5 MHz*/ | 1UL<<2 /*Master*/;
-	SPI2->CR2 = 1UL<<1 /* TX DMA enable */ | 0UL<<0 /* RX DMA enable OFF*/ | 0UL<<2 /* SSOE OFF*/;
+	SPI2->CR1 = 0UL << 11 /*8-bit frame*/| 1UL << 9 /*Software slave management*/| 1UL << 8 /*SSI bit must be high*/
+			| 0b001UL << 3 /*div 4 = 7.5 MHz*/| 1UL << 2 /*Master*/;
+	SPI2->CR2 = 1UL << 1 /* TX DMA enable */| 0UL << 0 /* RX DMA enable OFF*/| 0UL << 2 /* SSOE OFF*/;
 
-
-	SPI2->CR1 |= 1UL<<6; // Enable SPI
+	SPI2->CR1 |= 1UL << 6; // Enable SPI
 
 	delay_ms(10);
 	pulutof_init_ok = 1;
 }
 
 // Run this at 1kHz!
-void pulutof_fsm()
-{
-	if(!pulutof_init_ok) return;
+void pulutof_fsm(void) {
+	if (!pulutof_init_ok) {
+		return;
+	}
 	static int cycle = 0;
-	if(cycle == 0)
-	{	
+	if (cycle == 0) {
 		PULUTOF_CS0();
 		robot_to_pulutof.robot_pos = cur_pos;
-		DMA1->LIFCR = 0b111101UL<<22; DMA1_Stream3->CR |= 1UL; // Enable RX DMA
-		DMA1->HIFCR = 0b111101UL; DMA1_Stream4->CR |= 1UL; // Enable TX DMA
+		DMA1->LIFCR = 0b111101UL << 22;
+		DMA1_Stream3->CR |= 1UL; // Enable RX DMA
+		DMA1->HIFCR = 0b111101UL;
+		DMA1_Stream4->CR |= 1UL; // Enable TX DMA
 		cycle = 1;
-	}
-	else
-	{
+	} else {
 		PULUTOF_CS1();
 		cycle = 0;
 	}
@@ -525,8 +498,7 @@ void pulutof_fsm()
 #endif
 
 
-int main()
-{
+int main(void) {
 
 	__disable_irq();
 	/*
@@ -557,7 +529,7 @@ int main()
 	// delay loop: 13 sec -> 8 sec, when caches turned on.
 
 	// 3 wait states for 120MHz and Vcc over 2.7V
-	FLASH->ACR = 1UL<<10 /* Data cache enable */ | 1UL<<9 /* Instr cache enable */ | 1UL<<8 /*prefetch enable*/ | 3UL /*3 wait states*/;
+	FLASH->ACR = FLASH_ACR_DCEN /* Data cache enable */ | FLASH_ACR_ICEN /* Instr cache enable */ | FLASH_ACR_PRFTEN /*prefetch enable*/ | FLASH_ACR_LATENCY_3WS /*3 wait states*/;
 
 	RCC->PLLCFGR = 5UL<<24 /*Q*/ | 1UL<<22 /*HSE as source*/ | 0b00UL<<16 /*P=2*/ | 120UL<<6 /*N*/ | 4UL /*M*/;
 	RCC->CFGR = 0b100UL<<13 /*APB2 div 2*/ | 0b101UL<<10 /*APB1 div 4*/;
@@ -565,9 +537,13 @@ int main()
 	RCC->CR |= 1UL<<16; // HSE clock on
 	RCC->CR |= 1UL<<24; // PLL on
 
-	while(!(RCC->CR & 1UL<<25)) ; // Wait for PLL
+	while (!(RCC->CR & 1UL << 25)) {
+		; // Wait for PLL
+	}
 	RCC->CFGR |= 0b10; // Change PLL to system clock
-	while((RCC->CFGR & (0b11UL<<2)) != (0b10UL<<2)) ; // Wait for switchover to PLL.
+	while ((RCC->CFGR & (0b11UL << 2)) != (0b10UL << 2)) {
+		; // Wait for switchover to PLL.
+	}
 
 
 	RCC->AHB1ENR |= 0b111111111 /* PORTA to PORTI */ | 1UL<<22 /*DMA2*/ | 1UL<<21 /*DMA1*/;
@@ -733,8 +709,12 @@ int main()
 	delay_ms(100);
 
 	int tries = 5+1;
-	while(--tries && init_gyro_xcel_compass()) delay_ms(50);
-	if(tries < 1) DO_KILL_PWR();
+	while (--tries && init_gyro_xcel_compass()) {
+		delay_ms(50);
+	}
+	if (tries < 1) {
+		DO_KILL_PWR();
+	}
 
 	set_obstacle_avoidance_margin(1);
 
@@ -781,7 +761,7 @@ int main()
 
 
 
-	#ifdef PCB1B
+#ifdef PCB1B
 
 	LEFT_BLINKER_ON();
 	delay_ms(200);
@@ -801,7 +781,7 @@ int main()
 	FWD_LIGHT_OFF();
 	LEFT_BLINKER_OFF();
 
-	#endif
+#endif
 
 	#ifdef PULUTOF1
 
@@ -825,63 +805,79 @@ int main()
 
 	init_lidar();
 
-	lidar_on(2, 1);
+	lidar_on(2, 1); //(int fps, int smp)
 
 
-	while(1)
-	{
+	while (1) {
 		random++;
 		cnt++;
 
 		static uint8_t sync_packet[8] = {0xff,0xff,0xff,0xff,  0xff,0xff,0x12,0xab};
-		while(uart_busy()) random++;
+		while (uart_busy()) {
+			random++;
+		}
 		send_uart(sync_packet, 0xaa, 8);
-		while(uart_busy()) random++;
+		while (uart_busy()) {
+			random++;
+		}
 
 		uart_send_dbg_teleportation_bug();
 
 		LED_ON();
-		lidar_scan_ready = 0;
-		while(!lidar_scan_ready) ;
+		lidar_scan_ready = false;
+		while (!lidar_scan_ready) {
+			;
+		}
 		LED_OFF();
 		dbg_sending_lidar = 1;
 		send_uart(prev_lidar_scan, 0x84, LIDAR_SIZEOF(*prev_lidar_scan));
 		dbg_sending_lidar = 0;
 
 		// Send stuff required to be sent often:
-		while(uart_busy()) random++;
-		uart_send_critical1(); 
-		while(uart_busy()) random++;
-		uart_send_critical2(); 
-		while(uart_busy()) random++;
+		while (uart_busy()) {
+			random++;
+		}
+		uart_send_critical1();
+		while (uart_busy()) {
+			random++;
+		}
+		uart_send_critical2();
+		while (uart_busy()) {
+			random++;
+		}
 		uart_send_fsm(); // send something else.
 
 #ifdef SONARS_INSTALLED
 		{
 			sonar_xyz_t* sonar;
-			while( (sonar = get_sonar_point()) )
-			{
-				while(uart_busy()) random++;
+			while((sonar = get_sonar_point())) {
+				while(uart_busy()) {
+					random++;
+				}
 				send_uart(sonar, 0x85, sizeof(sonar_xyz_t));
 			}
 		}
 #endif
 
-		while(uart_busy()) random++;
+		while (uart_busy()) {
+			random++;
+		}
 		uart_send_critical1(); // Send stuff required to be sent often.
 
 
-		if(send_chafind_results)
-		{
+		if (send_chafind_results) {
 			send_chafind_results = 0;
-			while(uart_busy()) random++;
+			while (uart_busy()) {
+				random++;
+			}
 			send_uart(&chafind_results, 0x95, sizeof(chafind_results_t));
 		}
 
-		if(send_settings)
-		{
+		if (send_settings) {
 			send_settings = 0;
-			while(uart_busy()) random++;
+			while (uart_busy()) {
+				random++;
+			}
 			send_uart(&settings, 0xd1, sizeof(settings_t));
 		}
 

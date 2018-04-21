@@ -5,7 +5,7 @@
 	Maintainer: Antti Alhonen <antti.alhonen@iki.fi>
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -19,11 +19,17 @@
 
 #ifndef _FLASHER_H
 #define _FLASHER_H
+#ifdef   __cplusplus
+extern "C" {
+#endif
 
-void unlock_flash() __attribute__((section(".flasher")));
-void lock_flash() __attribute__((section(".flasher")));
-void flasher() __attribute__((section(".flasher")));
+void unlock_flash(void) __attribute__((section(".flasher")));
+void lock_flash(void) __attribute__((section(".flasher")));
+void flasher(void) __attribute__((section(".flasher")));
 int flash_erase_sector(int sector) __attribute__((section(".flasher")));
 
+#ifdef   __cplusplus
+}
+#endif
 
 #endif

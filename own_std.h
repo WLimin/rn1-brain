@@ -4,7 +4,7 @@
 	(c) 2017-2018 Pulu Robotics and other contributors
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -20,6 +20,9 @@
 #define __OWN_STD_H
 
 #include <inttypes.h>
+#ifdef   __cplusplus
+extern "C" {
+#endif
 
 // Find terminating 0 from a string, or terminate after n characters,
 // whichever comes first. Returns the length of a null-terminated string,
@@ -39,6 +42,9 @@ char* o_str_append(char* str1, char* str2);
 char* o_str_cmp(char* str1, char* str2);
 char* o_atoi_append(char* str, int* val_out);
 
+#ifdef   __cplusplus
+}
+#endif
 
 
 #endif

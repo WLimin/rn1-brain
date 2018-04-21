@@ -5,7 +5,7 @@
 	Maintainer: Antti Alhonen <antti.alhonen@iki.fi>
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -20,29 +20,34 @@
 #ifndef _FEEDBACKS_H
 #define _FEEDBACKS_H
 
+#include "main.h"
+
 #define GYRO_LONG_INTEGRAL_IGNORE_LEVEL 0
 
 #define MAX_DIFFERENTIAL_SPEED 3000
 #define MAX_SPEED 6000
+#ifdef   __cplusplus
+extern "C" {
+#endif
 
-void run_feedbacks(int sens_status);
+void run_feedbacks(uint32_t sens_status);
 void move_arc_manual(int comm, int ang);
 void compass_fsm(int cmd);
-void sync_to_compass();
-void host_alive();
-void host_alive_long();
-void host_dead();
+void sync_to_compass(void);
+void host_alive(void);
+void host_alive_long(void);
+void host_dead(void);
 void rotate_rel(int angle);
 void rotate_abs(int angle);
 void straight_rel(int fwd /*in mm*/);
-int correcting_angle();
-int angle_almost_corrected();
-int get_ang_err();
-int correcting_straight();
-int correcting_either();
-int robot_moving();
-void take_control();
-void reset_movement();
+int correcting_angle(void);
+int angle_almost_corrected(void);
+int get_ang_err(void);
+int correcting_straight(void);
+int correcting_either(void);
+int robot_moving(void);
+void take_control(void);
+void reset_movement(void);
 void speed_limit(int new_status);
 
 void set_top_speed_ang(int speed);
@@ -55,29 +60,39 @@ void set_top_speed_fwd_max(int speed); // Can only lower the existing limits
 void set_top_speed(int speed);
 void set_top_speed_max(int speed); // Can only lower the existing limits
 
-void reset_speed_limits();
+void reset_speed_limits(void);
 
-void enable_collision_detection();
+void enable_collision_detection(void);
 
-void change_angle_to_cur();
+void change_angle_to_cur(void);
 
 
-int get_fwd();
+int get_fwd(void);
 
-#define ANG_180_DEG 2147483648UL
-#define ANG_90_DEG  1073741824
-#define ANG_2_5_DEG   29826162
-#define ANG_1_DEG     11930465
-#define ANG_0_5_DEG    5965232
-#define ANG_0_25_DEG   2982616
-#define ANG_0_125_DEG  1491308
-#define ANG_0_1_DEG    1193047
-#define ANG_0_05_DEG    596523
-#define ANG_0_01_DEG    119305
-#define ANG_0_001_DEG    11930
+#define ANG_180_DEG (uint32_t)2147483648UL
+#define ANG_90_DEG  (uint32_t)1073741824
+#define ANG_2_5_DEG   (uint32_t)29826162
+#define ANG_1_DEG     (uint32_t)11930465
+#define ANG_0_5_DEG    (uint32_t)5965232
+#define ANG_0_25_DEG   (uint32_t)2982616
+#define ANG_0_125_DEG  (uint32_t)1491308
+#define ANG_0_1_DEG    (uint32_t)1193047
+#define ANG_0_05_DEG    (uint32_t)596523
+#define ANG_0_01_DEG    (uint32_t)119305
+#define ANG_0_001_DEG    (uint32_t)11930
 
-#define ANG_1PER16_DEG  745654  // cumulated full circle rounding error: 0.000006%
+#define ANG_1PER16_DEG  (uint32_t)745654  // cumulated full circle rounding error: 0.000006%
 
+#define RAD2nDEG  (ANG_180_DEG / M_PI)		//convert rad to 10^-9 degree
+#define ANG_DEG(a) ((a) * ANG_1_DEG)
+
+#define INT2mm_Unit		(uint32_t)0x10000 //1 mm is 2^16 unit.
+
+#define mm2Int(v)	((v) * INT2mm_Unit)
+#define Int2mm(v)	((v) / INT2mm_Unit)
+
+#define Rad2Int(v)	((v) * (uint32_t)0x10000)
+#define Int2Rad(v)	((v) / (uint32_t)0x10000)
 
 #define XCEL_X_NEG_WARN ((int)(-20000)*256)
 #define XCEL_X_POS_WARN ((int)(20000)*256)
@@ -92,7 +107,7 @@ int get_fwd();
 
 typedef struct
 {
-	int32_t ang; // int32_t range --> -180..+180 deg; let it overflow freely. 1 unit = 83.81903171539 ndeg
+	int32_t ang; // int32_t range --> -180..+180 deg; let it overflow freely. 1 unit = 83.8190317153931 ndeg
 	int32_t x;   // mm
 	int32_t y;   // mm
 } pos_t;
@@ -101,12 +116,12 @@ typedef struct
 
 extern volatile pos_t cur_pos;
 
-void zero_angle();
-void zero_coords();
+void zero_angle(void);
+void zero_coords(void);
 
-void allow_angular(int yes);
-void allow_straight(int yes);
-void auto_disallow(int yes);
+void allow_angular(bool yes);
+void allow_straight(bool yes);
+void auto_disallow(bool yes);
 
 void correct_location_without_moving(pos_t corr);
 void correct_location_without_moving_external(pos_t corr);
@@ -116,7 +131,7 @@ void change_angle_abs(int angle);
 void change_angle_rel(int angle);
 void change_straight_rel(int fwd /*in mm*/);
 
-void dbg_teleportation_bug();
+void dbg_teleportation_bug(int id);
 
 typedef struct __attribute__((packed))
 {
@@ -146,6 +161,9 @@ typedef struct __attribute__((packed))
 	int64_t y_after;
 
 } dbg_teleportation_extra_t;
+#ifdef   __cplusplus
+}
+#endif
 
 extern volatile dbg_teleportation_extra_t dbg_teleportation_extra, dbg_teleportation_extra_to_send;
 

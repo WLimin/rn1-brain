@@ -5,7 +5,7 @@
 	Maintainer: Antti Alhonen <antti.alhonen@iki.fi>
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -37,8 +37,7 @@
 	Currently, a 16K flash page is reserved for the settings.
 */
 
-typedef struct
-{
+typedef struct {
 	const uint32_t magic;	// for easily identifying a settings page
 	const uint32_t version; // In the future, we might want to provide advanced firmware update which checks
 	                        // for compatibility of the settings section to bring over old settings if possible.
@@ -46,12 +45,18 @@ typedef struct
 	                        // e.g., if variable sizes or offsets change
 
 
-	
+
 } settings_t;
 
 extern settings_t settings __attribute__((section(".settings")));
+#ifdef   __cplusplus
+extern "C" {
+#endif
 
-void save_settings();
+void save_settings(void);
+#ifdef   __cplusplus
+}
+#endif
 
 
 #endif

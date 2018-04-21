@@ -20,19 +20,19 @@
 
 #include "ext_include/stm32f2xx.h"
 
-void stm32init();
-void nmi_handler();
-void invalid_handler();
-void hardfault_handler();
+void stm32init(void);
+void nmi_handler(void);
+void invalid_handler(void);
+void hardfault_handler(void);
 
 extern void error(int code);
-extern void main();
-extern void uart_rx_handler();
-extern void adc_int_handler();
-extern void i2c1_inthandler();
-extern void timebase_10k_handler();
-extern void motcon_rx_done_inthandler();
-extern void lidar_rx_done_inthandler();
+extern void main(void);
+extern void uart_rx_handler(void);
+extern void adc_int_handler(void);
+extern void i2c1_inthandler(void);
+extern void timebase_10k_handler(void);
+extern void motcon_rx_done_inthandler(void);
+extern void lidar_rx_done_inthandler(void);
 
 extern unsigned int _STACKTOP;
 
@@ -149,10 +149,9 @@ extern unsigned int _BOOST_BEGIN;
 extern unsigned int _BOOST_END;
 extern unsigned int _BOOSTI_BEGIN;
 
-extern void hwtest_main();
+extern void hwtest_main(void);
 
-void stm32init(void)
-{
+void stm32init(void) {
 #ifndef HWTEST
 	// We need the 5V supply up and running as the very first thing!
 
@@ -172,8 +171,7 @@ void stm32init(void)
 
 	uint32_t* bss_begin = (uint32_t*)&_BSS_BEGIN;
 	uint32_t* bss_end   = (uint32_t*)&_BSS_END;
-	while(bss_begin < bss_end)
-	{
+	while (bss_begin < bss_end) {
 		*bss_begin = 0;
 		bss_begin++;
 	}
@@ -182,8 +180,7 @@ void stm32init(void)
 	uint32_t* data_end    = (uint32_t*)&_DATA_END;
 	uint32_t* datai_begin = (uint32_t*)&_DATAI_BEGIN;
 
-	while(data_begin < data_end)
-	{
+	while (data_begin < data_end) {
 		*data_begin = *datai_begin;
 		data_begin++;
 		datai_begin++;
@@ -197,17 +194,14 @@ void stm32init(void)
 }
 
 
-void nmi_handler(void)
-{
+void nmi_handler(void) {
 	error(1);
 }
 
-void hardfault_handler(void)
-{
+void hardfault_handler(void) {
 	error(2);
 }
 
-void invalid_handler(void)
-{
+void invalid_handler(void) {
 	error(3);
 }

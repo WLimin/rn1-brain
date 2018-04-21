@@ -4,7 +4,7 @@
 	(c) 2017-2018 Pulu Robotics and other contributors
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -26,6 +26,9 @@
 #define OPTFLOW_RST_HI()  {GPIOD->BSRR = 1UL<<1;}
 #define OPTFLOW_RST_LO() {GPIOD->BSRR = 1UL<<(1+16);}
 
+#ifdef   __cplusplus
+extern "C" {
+#endif
 
 typedef struct __attribute__ ((__packed__))
 {
@@ -39,8 +42,11 @@ typedef struct __attribute__ ((__packed__))
 	uint8_t max_pixel;
 } optflow_data_t;
 
-void init_optflow();
-void optflow_fsm();
+void init_optflow(void);
+void optflow_fsm(int* dx, int* dy);
 
+#ifdef   __cplusplus
+}
+#endif
 
 #endif

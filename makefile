@@ -15,14 +15,13 @@ MODEL=PROD1
 
 PCBREV=PCB1B
 
-CFLAGS = -I. -Os -fno-common -ffunction-sections -ffreestanding -fno-builtin -mthumb -mcpu=cortex-m3 -Wall -fstack-usage -Winline -D$(MODEL) -D$(PCBREV)
+CFLAGS = -I. -Os -fno-common -ffunction-sections -ffreestanding -fno-builtin -mthumb -mcpu=cortex-m3 -Wall -fstack-usage -std=c11 -Winline -D$(MODEL) -D$(PCBREV)
 
 #CFLAGS += -DHWTEST
 #CFLAGS += -DSONARS_INSTALLED
 CFLAGS += -DDELIVERY_APP
 #CFLAGS += -DOPTFLOW_INSTALLED
 CFLAGS += -DPULUTOF1
-
 
 ASMFLAGS = -S -fverbose-asm
 LDFLAGS = -mcpu=cortex-m3 -mthumb -nostartfiles -gc-sections
@@ -37,10 +36,14 @@ all: main.bin
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 main.bin: $(OBJ)
-	$(LD) -Tstm32.ld $(LDFLAGS) -o main.elf $^ /usr/arm-none-eabi/lib/thumb/v7-m/libm.a
+#	$(LD) -Tstm32.ld $(LDFLAGS) -o main.elf $^ /usr/arm-none-eabi/lib/thumb/v7-m/libm.a
+	$(LD) -Tstm32.ld $(LDFLAGS) -o main.elf $^ /${HOME}/eclipse/arduinoPlugin/packages/arduino/tools/arm-none-eabi-gcc/4.9.3-2015q3/arm-none-eabi/lib/cortex-m7/libm.a
 	$(OBJCOPY) -Obinary --remove-section=.ARM* main.elf main_full.bin
 	$(OBJCOPY) -Obinary --remove-section=.ARM* --remove-section=.flasher main.elf main.bin
 	$(SIZE) main.elf
+
+clean: 
+	rm $(OBJ) 
 
 flash_full: main.bin
 	stm32sprog -b 115200 -vw main_full.bin

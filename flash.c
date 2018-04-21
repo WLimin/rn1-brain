@@ -35,8 +35,8 @@ extern unsigned int _SETTINGSI_BEGIN;
 
 #define FLASH_OFFSET 0x08000000
 
-void unlock_flash() __attribute__((section(".flasher")));
-void unlock_flash()
+void unlock_flash(void) __attribute__((section(".flasher")));
+void unlock_flash(void)
 {
 	if(FLASH->CR & (1UL<<31))
 	{
@@ -45,8 +45,8 @@ void unlock_flash()
 	}
 }
 
-void lock_flash() __attribute__((section(".flasher")));
-void lock_flash()
+void lock_flash(void) __attribute__((section(".flasher")));
+void lock_flash(void)
 {
 	FLASH->CR |= 1UL<<31;
 }
@@ -122,8 +122,8 @@ void flash_read(uint32_t start_addr, int size)
 }
 
 // Address is sent MSB first
-uint32_t flash_usart_u32() __attribute__((section(".flasher")));
-uint32_t flash_usart_u32()
+uint32_t flash_usart_u32(void) __attribute__((section(".flasher")));
+uint32_t flash_usart_u32(void)
 {
 	int i;
 	uint32_t ret = 0;
@@ -171,8 +171,8 @@ Reset:
 	Soft CPU reset is done.
 
 */
-void flasher() __attribute__((section(".flasher")));
-void flasher()
+void flasher(void) __attribute__((section(".flasher")));
+void flasher(void)
 {
 	uint32_t addr, size;
 	uint8_t sect;
@@ -223,7 +223,7 @@ void flasher()
 	}
 }
 
-void run_flasher()
+void run_flasher(void)
 {
 	__disable_irq();
 

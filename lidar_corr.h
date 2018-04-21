@@ -5,7 +5,7 @@
 	Maintainer: Antti Alhonen <antti.alhonen@iki.fi>
 
 	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License version 2, as 
+	it under the terms of the GNU General Public License version 2, as
 	published by the Free Software Foundation.
 
 	This program is distributed in the hope that it will be useful,
@@ -22,6 +22,10 @@
 
 #include "lidar.h"
 
+#ifdef   __cplusplus
+extern "C" {
+#endif
+
 int do_lidar_corr(lidar_scan_t* scan1, lidar_scan_t* scan2, pos_t* corr);
 
 void live_lidar_calc_must_be_finished();
@@ -32,6 +36,9 @@ int livelidar_fsm(int allowed_to_send_lidar);
 int livelidar_skip();
 
 void reset_lidar_corr_images();
+#ifdef   __cplusplus
+}
+#endif
 
 
 #endif
