@@ -91,8 +91,8 @@ int get_fwd(void);
 #define mm2Int(v)	((v) * INT2mm_Unit)
 #define Int2mm(v)	((v) / INT2mm_Unit)
 
-#define Rad2Int(v)	((v) * (uint32_t)0x10000)
-#define Int2Rad(v)	((v) / (uint32_t)0x10000)
+#define Ang2Int32(v)	((v) * (uint32_t)0x10000)
+#define Int32toAng(v)	((v) / (uint32_t)0x10000)
 
 #define XCEL_X_NEG_WARN ((int)(-20000)*256)
 #define XCEL_X_POS_WARN ((int)(20000)*256)

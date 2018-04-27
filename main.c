@@ -52,36 +52,32 @@
 
 volatile int dbg[10];
 
-void delay_us(uint32_t i)
-{
-	if(i==0) return;
+void delay_us(uint32_t i) {
+	if (i == 0)
+		return;
 	i *= 25;
 	i -= 7;
-	while(i--)
+	while (i--) {
 		__asm__ __volatile__ ("nop");
+	}
 }
 
-void delay_ms(uint32_t i)
-{
-	while(i--)
-	{
+void delay_ms(uint32_t i) {
+	while (i--) {
 		delay_us(1000);
 	}
 }
 
-void error(int code)
-{
+void error(int code) {
 	__disable_irq();
 	int i = 0;
-	while(1)
-	{
+	while (1) {
 		LED_ON();
 		delay_ms(200);
 		LED_OFF();
 		delay_ms(200);
 		i++;
-		if(i == code)
-		{
+		if (i == code) {
 			delay_ms(800);
 			i = 0;
 		}
@@ -169,16 +165,16 @@ void timebase_10k_handler(void) { //100us
 		break;
 		case 2:
 			handle_uart_message(); // 3.33 kHz min
-			navig_fsm1();
+			navig_fsm1();				//Navigate function, position & speed control
 		break;
 		case 3:
-			navig_fsm2();
+			navig_fsm2();				//The task navigate function, do mission task.
 		break;
 		case 4:
 			handle_uart_message(); // 3.33 kHz min
 		break;
 		case 5:
-			run_feedbacks(gyro_xcel_compass_status);	//1kHz
+			run_feedbacks(gyro_xcel_compass_status);	//1kHz, core function, command to actor.
 			gyro_xcel_compass_status = 0;
 		break;
 		case 6:

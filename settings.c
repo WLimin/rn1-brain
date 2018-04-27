@@ -29,11 +29,9 @@
 #include "settings.h"
 #include "main.h"
 
-settings_t settings __attribute__((section(".settings"))) =
-{
+settings_t settings __attribute__((section(".settings"))) = {
 	.magic = 0x1357acef,
 	.version = 10
-
 };
 
 // Memory addresses from the linker script:
@@ -78,8 +76,9 @@ void program_setting_page(void) {
 
 		settings_begin++;
 		settingsi_begin++;
-		while (FLASH->SR & (1UL << 16))
+		while (FLASH->SR & (1UL << 16)) {
 			; // Poll busy bit
+		}
 	}
 
 	FLASH->CR = 0; // Clear programming bit.

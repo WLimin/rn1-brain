@@ -1,11 +1,16 @@
 # This makefile is made to work with the toolchain downloadable at https://launchpad.net/gcc-arm-embedded
 
-CC = arm-none-eabi-gcc
-LD = arm-none-eabi-gcc
-SIZE = arm-none-eabi-size
-OBJCOPY = arm-none-eabi-objcopy
+# Build path
+BUILD_DIR = build
+BINPATH = /${HOME}/eclipse/arduinoPlugin/packages/STM32/tools/arm-none-eabi-gcc/6-2017-q2-update/bin
+LIBDIR = $(BINPATH)/../arm-none-eabi/lib
 
+CC = $(BINPATH)/arm-none-eabi-gcc
+LD = $(BINPATH)/arm-none-eabi-gcc
+SIZE = $(BINPATH)/arm-none-eabi-size
+OBJCOPY = $(BINPATH)/arm-none-eabi-objcopy
 
+TARGET = brain
 
 #MODEL=RN1P4
 #MODEL=RN1P7
@@ -24,72 +29,93 @@ CFLAGS += -DDELIVERY_APP
 CFLAGS += -DPULUTOF1
 
 ASMFLAGS = -S -fverbose-asm
-LDFLAGS = -mcpu=cortex-m3 -mthumb -nostartfiles -gc-sections
+LDFLAGS = -mcpu=cortex-m3 -mthumb -nostartfiles -gc-sections -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref
 
-DEPS = main.h gyro_xcel_compass.h lidar.h optflow.h motcons.h own_std.h flash.h sonar.h comm.h feedbacks.h sin_lut.h navig.h uart.h settings.h
-OBJ = stm32init.o main.o gyro_xcel_compass.o lidar.o optflow.o motcons.o own_std.o flash.o sonar.o feedbacks.o sin_lut.o navig.o uart.o hwtest.o settings.o
-ASMS = stm32init.s main.s gyro_xcel_compass.s lidar.s optflow.s motcons.s own_std.s flash.s sonar.s feedbacks.s sin_lut.s navig.s uart.s settings.s
+######################################
+# source
+######################################
+# C sources
+C_SOURCES =  \
+stm32init.c main.c gyro_xcel_compass.c lidar.c optflow.c motcons.c own_std.c flash.c sonar.c \
+feedbacks.c sin_lut.c navig.c uart.c hwtest.c settings.c
 
-all: main.bin
+ASM_SOURCES =
 
-%.o: %.c $(DEPS)
+#DEPS = main.h gyro_xcel_compass.h lidar.h optflow.h motcons.h own_std.h flash.h sonar.h comm.h feedbacks.h sin_lut.h navig.h uart.h settings.h
+
+# list of objects
+OBJ = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
+vpath %.c $(sort $(dir $(C_SOURCES)))
+# list of ASM program objects
+OBJ += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
+vpath %.s $(sort $(dir $(ASM_SOURCES)))
+# list of ASM source file transed from C program
+ASMS += $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.s)))
+vpath %.c $(sort $(dir $(C_SOURCES)))
+
+all: $(BUILD_DIR)/$(TARGET).bin
+
+$(BUILD_DIR)/%.o: %.c $(DEPS) | $(BUILD_DIR)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-main.bin: $(OBJ)
-#	$(LD) -Tstm32.ld $(LDFLAGS) -o main.elf $^ /usr/arm-none-eabi/lib/thumb/v7-m/libm.a
-	$(LD) -Tstm32.ld $(LDFLAGS) -o main.elf $^ /${HOME}/eclipse/arduinoPlugin/packages/arduino/tools/arm-none-eabi-gcc/4.9.3-2015q3/arm-none-eabi/lib/cortex-m7/libm.a
-	$(OBJCOPY) -Obinary --remove-section=.ARM* main.elf main_full.bin
-	$(OBJCOPY) -Obinary --remove-section=.ARM* --remove-section=.flasher main.elf main.bin
-	$(SIZE) main.elf
+$(BUILD_DIR):
+	mkdir $@
 
-clean: 
-	rm $(OBJ) 
+clean:
+	-rm -fR .dep $(BUILD_DIR)
 
-flash_full: main.bin
-	stm32sprog -b 115200 -vw main_full.bin
+$(BUILD_DIR)/$(TARGET).bin: $(OBJ) | $(BUILD_DIR)
+#	$(LD) -Tstm32.ld $(LDFLAGS) -o $(BUILD_DIR)/$(TARGET).elf $^ /usr/arm-none-eabi/lib/thumb/v7-m/libm.a
+	$(LD) -Tstm32.ld $(LDFLAGS) -o $(BUILD_DIR)/$(TARGET).elf $^ $(LIBDIR)/thumb/v7-m/libm.a
+	$(OBJCOPY) -Obinary --remove-section=.ARM* $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET)_full.bin
+	$(OBJCOPY) -Obinary --remove-section=.ARM* --remove-section=.flasher $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).bin
+	$(SIZE) $(BUILD_DIR)/$(TARGET).elf
 
-flash: main.bin
-	stm32sprog -b 115200 -vw main.bin
+flash_full: $(BUILD_DIR)/$(TARGET).bin
+	stm32sprog -b 115200 -vw  $(BUILD_DIR)/$(TARGET)_full.bin
 
-f: main.bin
-	scp main.bin hrst@$(robot):~/rn1-tools/
+flash: $(BUILD_DIR)/$(TARGET).bin
+	stm32sprog -b 115200 -vw $(BUILD_DIR)/$(TARGET).bin
 
-ff: main.bin
-	scp main_full.bin hrst@$(robot):~/rn1-tools/main.bin
+f: $(BUILD_DIR)/$(TARGET).bin
+	scp $(BUILD_DIR)/$(TARGET).bin hrst@$(robot):~/rn1-tools/
 
-f_local: main.bin
-	../rn1-tools/prog /dev/ttyUSB0 ./main.bin h
+ff: $(BUILD_DIR)/$(TARGET).bin
+	scp $(BUILD_DIR)/$(TARGET)_full.bin hrst@$(robot):~/rn1-tools/$(BUILD_DIR)/$(TARGET).bin
 
-f_proto4: main.bin
-	scp main.bin hrst@proto4:~/rn1-tools/
+f_local: $(BUILD_DIR)/$(TARGET).bin
+	../rn1-tools/prog /dev/ttyUSB0 ./$(BUILD_DIR)/$(TARGET).bin h
 
-f_helsinki1: main.bin
-	scp main.bin hrst@helsinki1:~/rn1-tools/
+f_proto4: $(BUILD_DIR)/$(TARGET).bin
+	scp $(BUILD_DIR)/$(TARGET).bin hrst@proto4:~/rn1-tools/
 
-f_proto5: main.bin
-	scp main.bin hrst@proto5:~/rn1-tools/
+f_helsinki1: $(BUILD_DIR)/$(TARGET).bin
+	scp $(BUILD_DIR)/$(TARGET).bin hrst@helsinki1:~/rn1-tools/
 
-f_proto6: main.bin
-	scp main.bin hrst@proto6:~/rn1-tools/
+f_proto5: $(BUILD_DIR)/$(TARGET).bin
+	scp $(BUILD_DIR)/$(TARGET).bin hrst@proto5:~/rn1-tools/
 
-f_pulu1: main.bin
-	scp main.bin hrst@pulu1:~/rn1-tools/
+f_proto6: $(BUILD_DIR)/$(TARGET).bin
+	scp $(BUILD_DIR)/$(TARGET).bin hrst@proto6:~/rn1-tools/
 
-stack:
-	cat *.su
+f_pulu1: $(BUILD_DIR)/$(TARGET).bin
+	scp $(BUILD_DIR)/$(TARGET).bin hrst@pulu1:~/rn1-tools/
+
+stack: $(BUILD_DIR)
+	cat $(BUILD_DIR)/*.su
 
 sections:
-	arm-none-eabi-objdump -h main.elf
+	arm-none-eabi-objdump -h $(BUILD_DIR)/$(TARGET).elf
 
 syms:
-	arm-none-eabi-objdump -t main.elf
+	arm-none-eabi-objdump -t $(BUILD_DIR)/$(TARGET).elf
 
-%.s: %.c $(DEPS)
+$(BUILD_DIR)/%.s: %.c $(DEPS) | $(BUILD_DIR)
 	$(CC) -c -o $@ $< $(CFLAGS) $(ASMFLAGS)
 
 asm: $(ASMS)
 
-e: 
+e:
 	gedit --new-window main.c feedbacks.h feedbacks.c navig.h navig.c lidar.h lidar.c lidar_corr.h lidar_corr.c uart.h uart.c motcons.c motcons.h sonar.c sonar.h flash.h flash.c settings.h settings.c &
 s:
 	screen /dev/ttyUSB0 115200

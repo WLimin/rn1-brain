@@ -139,7 +139,9 @@ void move_fsm(void) {
 
    dbg_teleportation_bug(202);
 }
-
+//Robot turns first, then goes straight.
+//			int	angle	+/- 1/16th degrees
+//			int	forward + forward, - backward, in mm.
 void move_rel_twostep(int angle32, int fwd /*in mm*/, int speedlim) {
    dbg_teleportation_bug(203);
 
@@ -165,7 +167,9 @@ void ena_coll_avoid(void) {
 void dis_coll_avoid(void) {
 	enable_coll_avoidance = false;
 }
-
+//Robot turns first, then goes straight.
+//			int	angle	+/- 1/16th degrees, absolute angle.
+//			int	forward + forward, - backward, in mm.
 void move_absa_rels_twostep(int angle32, int fwd /*in mm*/, int speedlim) {
    dbg_teleportation_bug(205);
 
@@ -182,7 +186,6 @@ void move_absa_rels_twostep(int angle32, int fwd /*in mm*/, int speedlim) {
 	cur_move.rel_fwd = fwd;
 	cur_move.valid = 1;
    dbg_teleportation_bug(206);
-
 }
 
 int get_xy_left(void) {
@@ -235,7 +238,9 @@ void xy_fsm(void) {
 	dbg_teleportation_bug(208);
 }
 
-
+//Robot makes an arc by simultaneous turning and forward/backward motion.
+//			sint14	angle	+/- 1/16th degrees
+//			sint14	forward + forward, - backward, in mm.
 void move_xy_abs(int32_t x, int32_t y, int back_mode, int id, int speedlim) {
 	dbg_teleportation_bug(209);
 
@@ -701,8 +706,6 @@ void micronavi_point_in_normal(int32_t x, int32_t y, int16_t z, int stop_if_nece
    dbg_teleportation_bug(221);
 
 /*
-
-
        ###############################
        ###############################
        ###############################
@@ -719,7 +722,6 @@ void micronavi_point_in_normal(int32_t x, int32_t y, int16_t z, int stop_if_nece
              |
              |
              X  <--obstacle seen (variables x,y)
-
 
 
 
@@ -795,7 +797,6 @@ void micronavi_point_in_normal(int32_t x, int32_t y, int16_t z, int stop_if_nece
 SKIP_MICRONAVI:
 	set_top_speed(navi_speed);
 }
-
 
 int chafind_nearest_hit_x;
 int chafind_nearest_hit_y;
@@ -901,7 +902,7 @@ void micronavi_point_in_chafind(int32_t x, int32_t y, int16_t z, int stop_if_nec
 int chafind_calc(int* p_ang, int* p_shift, int* p_dist) {
 	int left = chafind_left_accum / chafind_left_accum_cnt;
 	int right = chafind_right_accum / chafind_right_accum_cnt;
-	//int avgdist = (left+right+(chafind_nearest_hit_x+CHAFIND_MIDDLE_BAR_DEPTH))/3;
+	//	int avgdist = (left + right + (chafind_nearest_hit_x + CHAFIND_MIDDLE_BAR_DEPTH)) / 3;
 
 	int ang = atan2(right - left, CHAFIND_SIDE) * RAD2nDEG;  //(4294967296.0/(2.0*M_PI));
 	*p_ang = ang;
@@ -928,7 +929,6 @@ int chafind_calc(int* p_ang, int* p_shift, int* p_dist) {
 
 	return 0;
 }
-
 
 typedef enum {
 	CHAFIND_IDLE 						= 0,

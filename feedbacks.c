@@ -309,7 +309,7 @@ void straight_rel(int fwd /*in mm*/) {
 	feedback_stop_param2_store = 0;
 	speed_limit_lowered = 0;
 	fwd_accel = final_fwd_accel / 4;
-	aim_fwd = fwd << 16;
+	aim_fwd = mm2Int(fwd);
 	manual_control = 0;
 	set_robot_moving();
 	reset_wheel_slip_det = true;
@@ -453,8 +453,8 @@ void correct_location_without_moving_external(pos_t corr) {
 	dbg_teleportation_bug(109);
 
 	__disable_irq();
-	cur_x += corr.x << 16;
-	cur_y += corr.y << 16;
+	cur_x += mm2Int(corr.x);
+	cur_y += mm2Int(corr.y);
 	cur_pos.ang += corr.ang;
 	aim_angle += corr.ang;
 
@@ -468,13 +468,13 @@ void correct_location_without_moving_external(pos_t corr) {
 
 	__enable_irq();
 
-//	dbg[7] = (int32_t)(gyro_mul_neg>>16);
-//	dbg[8] = (int32_t)(gyro_mul_pos>>16);
+//	dbg[7] = (int32_t) (gyro_mul_neg >> 16);
+//	dbg[8] = (int32_t) (gyro_mul_pos >> 16);
 
 	static int avg_corr_flt;
 
 	avg_corr_flt = (corr.ang + 31 * avg_corr_flt) >> 5; // moving average for debug purposes
-//	dbg[9]  = avg_corr_flt/ANG_0_01_DEG;
+//	dbg[9] = avg_corr_flt / ANG_0_01_DEG;
 
 	dbg_teleportation_bug(110);
 
@@ -484,8 +484,8 @@ void set_location_without_moving_external(pos_t new_pos) {
 	dbg_teleportation_bug(111);
 
 	__disable_irq();
-	cur_x = new_pos.x << 16;
-	cur_y = new_pos.y << 16;
+	cur_x = mm2Int(new_pos.x);
+	cur_y = mm2Int(new_pos.y);
 	cur_pos.ang = new_pos.ang;
 	aim_angle = new_pos.ang;
 	reset_wheel_slip_det = true;
@@ -665,20 +665,20 @@ void run_feedbacks(uint32_t sens_status) {
 //do_correct_fwd?
 	if (straight_allowed && ((fwd_err < mm2Int(-40)) || fwd_err > mm2Int(40))) { //|fwd_err| >40mm
 		if (accurate_turngo) {
-			if (ang_err > ANG_DEG(-3) && ang_err < ANG_DEG(3)) {	//|ang_err| < 3deg
+			if (ang_err > ANG_DEG(-3) && ang_err < ANG_DEG(3)) {						//|ang_err| < 3deg
 				do_correct_fwd = true;
-			} else if (ang_err < ANG_DEG(-5) && ang_err > ANG_DEG(5)) {	//|ang_err| > 5deg
+			} else if (ang_err < ANG_DEG(-5) && ang_err > ANG_DEG(5)) {				//|ang_err| > 5deg
 				do_correct_fwd = false;
 			}
 		} else {
-			if (ang_err > ANG_DEG(-15) && ang_err < ANG_DEG(15)) {	//|ang_err| < 15deg
+			if (ang_err > ANG_DEG(-15) && ang_err < ANG_DEG(15)) {					//|ang_err| < 15deg
 				do_correct_fwd = true;
-			} else if (ang_err < ANG_DEG(-30) && ang_err > ANG_DEG(30)) {	//|ang_err| > 30deg
+			} else if (ang_err < ANG_DEG(-30) && ang_err > ANG_DEG(30)) {			//|ang_err| > 30deg
 				do_correct_fwd = false;
 			}
 		}
 	}
-	if (!straight_allowed || (fwd_err > mm2Int(-15) && fwd_err < mm2Int(15) )) { //|fwd_err| <15mm
+	if (!straight_allowed || (fwd_err > mm2Int(-15) && fwd_err < mm2Int(15))) {	//|fwd_err| <15mm
 		do_correct_fwd = false;
 	}
 
@@ -696,22 +696,26 @@ void run_feedbacks(uint32_t sens_status) {
    dbg_teleportation_bug(121);
 
 	if (accurate_turngo) {
-		if (angular_allowed && ((fwd_nonidle > 300 && (ang_err < (-ANG_0_5_DEG) || ang_err > ANG_0_5_DEG))
-				|| (ang_err < ANG_DEG(-1) || ang_err > ANG_DEG(1)))) {
+
+		if (angular_allowed
+				&& ((fwd_nonidle > 300 && (ang_err < (-ANG_0_5_DEG ) || ang_err > ANG_0_5_DEG ))
+						|| (ang_err < ANG_DEG(-1) || ang_err > ANG_DEG(1)))) {
 			do_correct_angle = true;
 		}
 
-		if (!angular_allowed || (fwd_nonidle > 300 && (ang_err > (-ANG_0_25_DEG) && ang_err < (ANG_0_25_DEG)))
-				|| ((ang_err > (-ANG_0_5_DEG) && ang_err < (ANG_0_5_DEG)))) {
+		if (!angular_allowed || (fwd_nonidle > 300 && (ang_err > (-ANG_0_25_DEG ) && ang_err < (ANG_0_25_DEG )))
+				|| ((ang_err > (-ANG_0_5_DEG ) && ang_err < (ANG_0_5_DEG )))) {
 			do_correct_angle = false;
 		}
+
 	} else {
-		if (angular_allowed && ((fwd_nonidle > 300 && (ang_err < (-ANG_0_5_DEG) || ang_err > ANG_0_5_DEG))
-				|| (ang_err < ANG_DEG(-5) || ang_err > ANG_DEG(5)))) {
+		if (angular_allowed
+				&& ((fwd_nonidle > 300 && (ang_err < (-ANG_0_5_DEG ) || ang_err > ANG_0_5_DEG ))
+						|| (ang_err < ANG_DEG(-5) || ang_err > ANG_DEG(5)))) {
 			do_correct_angle = true;
 		}
 
-		if (!angular_allowed || (fwd_nonidle > 300 && (ang_err > (-ANG_0_25_DEG) && ang_err < (ANG_0_25_DEG)))
+		if (!angular_allowed || (fwd_nonidle > 300 && (ang_err > (-ANG_0_25_DEG ) && ang_err < (ANG_0_25_DEG )))
 				|| ((ang_err > ANG_DEG(-3) && ang_err < ANG_DEG(3)))) {
 			do_correct_angle = false;
 		}
@@ -789,7 +793,7 @@ void run_feedbacks(uint32_t sens_status) {
 	static int32_t prev_cur_ang = 0;
 
 	int16_t wheel_counts[2];
-	wheel_counts[0] = motcon_rx[A_MC_IDX].pos;
+	wheel_counts[0] = motcon_rx[A_MC_IDX].pos;	//counts of passed Halls
 	wheel_counts[1] = motcon_rx[B_MC_IDX].pos;
 
 	if (init_wait_cnt) {
@@ -1013,9 +1017,9 @@ void run_feedbacks(uint32_t sens_status) {
 		static int gyro_dc_corrs_valid;
 		if (robot_nonmoving) { // Moving average or Complementary filter, alpha=0.00390625.
 			//new=latest*65536/2, a=(new+a*255)/256=new*0.00390625+a*0.99609375;
-			gyro_dc_corrs[0] = (Rad2Int(latest[0]) / 2 + 255 * gyro_dc_corrs[0]) / 256;
-			gyro_dc_corrs[1] = (Rad2Int(latest[1]) / 2 + 255 * gyro_dc_corrs[1]) >> 8;
-			gyro_dc_corrs[2] = (Rad2Int(latest[2]) / 2 + 255 * gyro_dc_corrs[2]) >> 8;
+			gyro_dc_corrs[0] = (Ang2Int32(latest[0]) / 2 + 255 * gyro_dc_corrs[0]) / 256;
+			gyro_dc_corrs[1] = (Ang2Int32(latest[1]) / 2 + 255 * gyro_dc_corrs[1]) >> 8;
+			gyro_dc_corrs[2] = (Ang2Int32(latest[2]) / 2 + 255 * gyro_dc_corrs[2]) >> 8;
 			if (gyro_dc_corrs_valid < GYRO_DC_CORRS_VALID_LIM) {
 				gyro_dc_corrs_valid++;
 			}
@@ -1056,7 +1060,7 @@ void run_feedbacks(uint32_t sens_status) {
 			dbg[2] = dbgmax;
 			dbg[3] = dbgavg_cnt;
 			dbg[4] = dbgavg / dbgavg_cnt;
-			dbg[5] = Int2Rad(gyro_dc_corrs[0])*2;
+			dbg[5] = Int32toAng(gyro_dc_corrs[0])*2;
 
 			dbgmax = -999999;
 			dbgmin = 999999;
@@ -1073,8 +1077,8 @@ void run_feedbacks(uint32_t sens_status) {
 		dbgavg += latest[0];
 		dbgavg_cnt++;
 
-		for (i = 0; i < 3; i++) {
-			latest[i] -= Int2Rad(gyro_dc_corrs[i])*2;
+		for (i = 0; i < 3; i++) {	//Int
+			latest[i] -= Int32toAng(gyro_dc_corrs[i])*2;
 			latest[i] *= gyro_dt;
 			gyro_long_integrals[i] += latest[i];
 			gyro_short_integrals[i] += latest[i];
@@ -1112,9 +1116,9 @@ void run_feedbacks(uint32_t sens_status) {
 		cur_pos.x = Int2mm(cur_x);		// >> 16;
 		cur_pos.y = Int2mm(cur_y);		// >> 16;
 		if (latest[2] < -1 * gyro_blank) {  // Negative = left
-			cur_pos.ang += ((int64_t) latest[2] * (int64_t) Int2Rad(gyro_mul_neg)) >> 13;
+			cur_pos.ang += ((int64_t) latest[2] * (int64_t) Int32toAng(gyro_mul_neg)) >> 13; //drift correct.
 		} else if (latest[2] > gyro_blank) {  // Positive = right
-			cur_pos.ang += ((int64_t) latest[2] * (int64_t) Int2Rad(gyro_mul_pos)) >> 13;
+			cur_pos.ang += ((int64_t) latest[2] * (int64_t) Int32toAng(gyro_mul_pos)) >> 13;
 		}
 		__enable_irq();
 	}
